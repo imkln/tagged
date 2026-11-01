@@ -1,29 +1,14 @@
-# Small, reviewable pieces
+# Project plan
 
-Each piece should be usable or understandable on its own. Review it before starting the next; the list below is a proposed sequence, not authorization to implement everything at once.
+Each milestone delivers a working user-facing workflow on the deployed app. Review the result before starting the next milestone. Infrastructure, tests, and deployment belong to the feature they support.
 
-| Piece | Deliverable | What to review |
+| Milestone | Deliverable | Visible result |
 | --- | --- | --- |
-| 1. Project setup | Private GitHub repository, brief, and this plan | Is the problem and first working version right? |
-| 2. Gallery shell | Responsive interface with clearly labeled sample data | Desktop/mobile layout, navigation, and empty state |
-| 3. Local photo upload | Upload JPEGs, persist them locally, and view them in the gallery | One real photo can be uploaded and viewed after restart |
-| 4. Metadata | Capture date, dimensions, and camera metadata where available | Missing metadata and image orientation are handled honestly |
-| 5. First AWS deployment | Authentication, private S3 storage, PostgreSQL, and an internet-accessible app | Deployment plan and expected ongoing costs before creating resources; authenticated upload and viewing afterward |
-| 6. Background tagging | Queue, worker, one vision provider, processing states, and retries | One uploaded photo receives suggested tags; failures are visible and retryable |
-| 7. Search and corrections | Combined tag filters and manual tag edits | Filters work together and AI processing preserves user corrections |
-| 8. Needs review and new tags | Untagged/uncertain view, tag definitions, and opt-in backfill | Review states are clear and backfill preserves existing corrections |
-| 9. Similar photos | Suggested composition groups and side-by-side review | Useful grouping and explicit selection; deletion is a separate user action |
-
-## Boundaries for the first working version
-
-- One owner and JPEG uploads. HEIC, RAW, video, sharing, and iCloud sync can wait.
-- Local development first; AWS deployment is a separate piece.
-- No AI calls or ongoing cloud spend during project setup.
-- No automatic photo deletion.
-- The reference screenshot communicates design direction; its sample photos, counts, trips, and storage figures are not real library data.
-
-## Decisions to make when relevant
-
-- **Before uploading real photos to AWS:** account/region, sign-in method, retention, backups, location privacy, and an acceptable monthly budget.
-- **Before AI tagging:** provider/model, credentials, which image/metadata is sent externally, confidence handling, and a per-photo cost limit.
-- **Before similarity review:** grouping method, what counts as the same composition, and reversible deletion behavior.
+| 1. Open your private website | Create and serve the responsive website over HTTPS, using the supplied gallery mockup as the design reference. Include sign-in, sign-out, and an owner-only account allowlist; no public registration. Enforce authorization on the backend as well as in the interface. Establish the AWS deployment and agree on its expected running cost as part of this milestone. | You can open the website on desktop and mobile, sign in, and reach your empty library. Signed-out visitors and accounts outside the allowlist cannot access library data or protected API routes. |
+| 2. Upload and browse a trip's photos | Add batch JPEG uploads from the browser to private S3 storage, with upload authorization issued only to the signed-in owner. Store library records in DynamoDB. Include trip naming, per-file progress, failed-upload retries, thumbnails, and a full-photo viewer. Generate thumbnails in the background and show processing states. Photo viewing also requires authorization; the bucket is not public. | Upload a batch, see the photos appear in your trip, and return later from another device to browse them. Unauthorized requests cannot upload or retrieve photos. |
+| 3. Organize photos using their metadata | Extract capture dates, dimensions, camera details, and available GPS metadata. Respect image orientation and show missing fields honestly. Add date, trip, and camera filters, plus capture-date sorting. Keep location details private with the rest of the library. | Open a photo's details and narrow a real trip to photos taken on a particular day or camera. |
+| 4. Tag photos and find them again | Create tags, add or remove them on individual photos or a selection, and search tag names. Combine tag filters with trip and date filters, with pagination and a clear way to reset the search. | Tag several photos and retrieve exactly the matching photos with a search such as “Rome AND Cat,” including after refreshing or signing in on another device. |
+| 5. Have AI tag new photos | Connect a configurable vision provider through a Go worker and SQS. Keep provider credentials on the server. Agree on the model, image/metadata sent to it, and a processing budget before enabling calls. Suggest subject and scene tags without inventing precise locations. Show queued, processing, completed, and failed states, with bounded retries and a manual retry action. Preserve manual corrections across retries. | Upload photos and watch searchable AI tags appear without waiting on the upload screen. Inspect failures and retry them from the app. |
+| 6. Review untagged photos and teach the library new tags | Add a needs-review view for photos with no useful AI tags or uncertain suggestions, distinct from processing failures. Let the owner correct tags and define new ones with descriptions. Offer an explicit background backfill over older photos, showing its estimated cost, progress, and results while preserving manual corrections. | Find a photo the AI could not classify, define the missing tag, and run a backfill that finds older matching photos without re-uploading them. |
+| 7. Compare repeats and reclaim space | Detect exact duplicates and suggest groups of similar compositions. Label the distinction and allow incorrect groups to be dismissed. Add side-by-side comparison with zoom and metadata so the owner can choose the keeper. Require explicit selection and confirmation to move unwanted shots to a recoverable trash view; permanently deleting them is a separate action. Show the storage actually reclaimed after permanent deletion. | Review a burst of similar shots, keep the best, restore a mistakenly trashed photo, and deliberately delete unwanted originals. No photo is deleted automatically. |
+| 8. Share selected photos publicly | Keep uploads private by default. Let the owner explicitly mark selected photos as public and return them to private. Serve public photos through shareable pages without requiring viewers to sign in, while keeping private photos and all upload/edit actions restricted to the owner. Exclude private metadata, including GPS, from public pages and image files. | Open a published photo's link while signed out and view it. Private photos remain inaccessible, and returning a photo to private disables public access through the app; previously downloaded copies cannot be recalled. |
