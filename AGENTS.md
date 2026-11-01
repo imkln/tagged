@@ -11,4 +11,4 @@
 - Write readable, maintainable code with clear names and responsibilities. Avoid speculative abstractions; comment only when a non-obvious reason needs explaining.
 - Follow TDD: write meaningful behavior tests, run them and confirm they fail before implementing the behavior, then implement and refactor with the tests passing.
 - Present tests for the owner's review and wait for approval before implementing the behavior.
-- Follow idiomatic language conventions and standard formatting (`gofmt` for Go). Keep tests as readable as production code: focused cases, descriptive names, normal multiline control flow, and checked setup errors.
+- Use idiomatic structure and standard automated formatting for all code and configuration. Separate components, styles, and responsibilities logically. Keep tests as readable as production code, with focused cases, descriptive names, and checked setup errors.

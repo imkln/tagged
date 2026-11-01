@@ -1,0 +1,33 @@
+.brand {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.brand-mark {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 34px;
+}
+
+.brand-mark span {
+  position: absolute;
+  width: 22px;
+  height: 27px;
+  border-radius: 5px;
+  background: #f4a654;
+  top: 6px;
+  left: 1px;
+  transform: rotate(-8deg);
+}
+
+.brand-mark span + span {
+  top: 1px;
+  left: 8px;
+  background: #8b6036;
+  transform: rotate(8deg);
+}

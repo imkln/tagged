@@ -24,7 +24,9 @@ it('offers Google sign-in without exposing the library', async () => {
   });
 
   expect(signIn).toHaveAttribute('href', '/auth/login');
-  expect(screen.queryByRole('heading', { name: 'Gallery' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('heading', { name: 'Gallery' }),
+  ).not.toBeInTheDocument();
 });
 
 it('shows the owner an empty gallery and a sign-out form', async () => {
@@ -32,11 +34,15 @@ it('shows the owner an empty gallery and a sign-out form', async () => {
 
   render(<App />);
 
-  expect(await screen.findByRole('heading', { name: 'Gallery' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { name: 'Gallery' }),
+  ).toBeInTheDocument();
   expect(screen.getByText('Your library starts here')).toBeInTheDocument();
   expect(screen.getByText('0 photos')).toBeInTheDocument();
 
-  const signOut = screen.getByRole('button', { name: 'Sign out' }).closest('form');
+  const signOut = screen
+    .getByRole('button', { name: 'Sign out' })
+    .closest('form');
 
   expect(signOut).toHaveAttribute('method', 'post');
   expect(signOut).toHaveAttribute('action', '/auth/logout');
@@ -56,7 +62,9 @@ it('denies other accounts without displaying the gallery', async () => {
   });
 
   expect(signIn).toHaveAttribute('href', '/auth/login');
-  expect(screen.queryByRole('heading', { name: 'Gallery' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('heading', { name: 'Gallery' }),
+  ).not.toBeInTheDocument();
 });
 
 it('lets the user retry after a connection failure', async () => {
@@ -73,9 +81,13 @@ it('lets the user retry after a connection failure', async () => {
 
   render(<App />);
 
-  expect(await screen.findByRole('alert')).toHaveTextContent('Unable to reach Tagged');
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to reach Tagged',
+  );
 
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
-  expect(await screen.findByRole('heading', { name: 'Gallery' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { name: 'Gallery' }),
+  ).toBeInTheDocument();
 });
