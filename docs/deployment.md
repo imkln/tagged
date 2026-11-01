@@ -1,45 +1,63 @@
-# First-time setup
+# First-time setup and deployment
 
-Application deployments run through GitHub Actions. Local AWS access is only needed to bootstrap the state bucket and GitHub OIDC access.
+Complete this guide before running the app locally with Google sign-in. Use `us-east-1` for this setup. Install Python 3, AWS CLI, and GitHub CLI. Run commands from the repository root.
 
-## Google sign-in
+## 1. Register Google sign-in
 
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/) and configure **Google Auth Platform** for Tagged. Choose an External audience and add your account as a test user.
-2. Request only OpenID, email, and profile scopes.
-3. Choose a unique Cognito domain prefix. Create a Web application OAuth client with these URLs:
-   - Origin: `https://<prefix>.auth.us-east-1.amazoncognito.com`
-   - Redirect: `https://<prefix>.auth.us-east-1.amazoncognito.com/oauth2/idpresponse`
-4. Save the client ID and secret. Use the same prefix in the GitHub configuration below.
+1. Open [Google Cloud Console](https://console.cloud.google.com/). In the project picker at the top, choose **New project**, name it **Tagged**, click **Create**, and select the new project.
+2. Open **Google Auth Platform** using the console search. Click **Get started**. Enter **Tagged** as the app name, select your support email, choose **External** as the audience, and enter your contact email. Complete the form and click **Create**.
+3. Open **Google Auth Platform → Data Access → Add or remove scopes**. Select `openid`, `.../auth/userinfo.email`, and `.../auth/userinfo.profile`. Click **Update**, then **Save**.
+4. Open **Google Auth Platform → Clients → Create client** and fill in:
 
-Google provides sign-in only; application hosting remains on AWS. See the [AWS setup guide](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-social-idp-google.html) for console details.
+   | Field | Value |
+   | --- | --- |
+   | Application type | Web application |
+   | Name | Tagged |
+   | Authorized JavaScript origins → Add URI | `https://<prefix>.auth.us-east-1.amazoncognito.com` |
+   | Authorized redirect URIs → Add URI | `https://<prefix>.auth.us-east-1.amazoncognito.com/oauth2/idpresponse` |
 
-## AWS bootstrap
+   Replace `<prefix>` in both URLs with a unique Cognito domain prefix, for example `tagged-<aws-account-id>`. Use the same value for `COGNITO_DOMAIN_PREFIX` below, then click **Create**.
+5. Copy the displayed **Client ID** and **Client secret** for the GitHub settings in section 3.
 
-With AWS CLI and GitHub CLI logged in, run from the repository root:
+Reference: [AWS Google sign-in setup](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-social-idp-google.html).
+
+## 2. Bootstrap AWS access
+
+With AWS CLI and GitHub CLI authenticated, run:
 
 ```sh
 python3 script/bootstrap.py
 ```
 
-The script creates the Terraform state bucket, GitHub OIDC provider, and deployment role. It creates or updates repository variables `AWS_REGION`, `AWS_ROLE_ARN`, `TF_STATE_BUCKET`, and `TF_STATE_KEY`. Access is restricted to workflows on `main`.
+The script creates the state bucket, OIDC provider, and deployment role, then creates or updates the four repository variables listed below.
 
-Defaults use the current account, repository, and `us-east-1`. Use `--state-bucket`, `--role-name`, `--region`, or `--repo` to override them. Rerunning updates the existing setup.
+## 3. Configure GitHub
 
-## GitHub configuration
+1. Open the repository on GitHub, then **Settings → Secrets and variables → Actions → Variables**.
+2. Confirm the variables set by bootstrap are listed:
 
-Under **Settings → Secrets and variables → Actions**, add:
+   | Name | Set by bootstrap |
+   | --- | --- |
+   | `AWS_REGION` | `us-east-1` |
+   | `AWS_ROLE_ARN` | Deployment role ARN |
+   | `TF_STATE_BUCKET` | Terraform state bucket name |
+   | `TF_STATE_KEY` | Terraform state object key |
 
-| Repository variable | Value |
-| --- | --- |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `COGNITO_DOMAIN_PREFIX` | Prefix registered above |
+3. Click **New repository variable** to add the remaining entries:
 
-| Repository secret | Value |
-| --- | --- |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `OWNER_EMAIL` | Authorized Google email |
-| `OWNER_SUBJECT` | Optional Cognito subject |
+   | Name | Value |
+   | --- | --- |
+   | `GOOGLE_CLIENT_ID` | Client ID copied from Google |
+   | `COGNITO_DOMAIN_PREFIX` | The text replacing `<prefix>` in both Google URLs |
 
-## Deploy
+4. Switch to **Secrets** and click **New repository secret** for each entry. Bootstrap does not set these:
 
-After merging, open **Actions → Deploy → Run workflow** on `main`. Leave **apply** unchecked to review the plan; select it when ready to deploy. The website URL appears in the workflow output.
+   | Name | Value |
+   | --- | --- |
+   | `GOOGLE_CLIENT_SECRET` | Client secret copied from Google |
+   | `OWNER_EMAIL` | Google email allowed to access Tagged |
+
+## 4. Deploy from GitHub Actions
+
+1. Open the repository's **Actions → Deploy → Run workflow**. Select the branch to deploy, check **Apply the Terraform plan**, and click **Run workflow**.
+2. Open the successful run, expand **terraform output website_url**, and open the displayed URL.

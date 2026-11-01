@@ -123,6 +123,8 @@ def configure_role(aws, role_name, provider_arn, subject, policy):
                 "Condition": {
                     "StringEquals": {
                         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                    },
+                    "StringLike": {
                         "token.actions.githubusercontent.com:sub": subject,
                     },
                 },
@@ -220,7 +222,7 @@ def main():
     if metadata["created_at"][:10] > "2026-07-15":
         owner = f"{owner}@{metadata['owner']['id']}"
         name = f"{name}@{metadata['id']}"
-    subject = args.oidc_subject or f"repo:{owner}/{name}:ref:refs/heads/main"
+    subject = args.oidc_subject or f"repo:{owner}/{name}:ref:refs/heads/*"
     variables = {
         "partition": partition,
         "region": args.region,
