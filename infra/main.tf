@@ -102,16 +102,15 @@ resource "aws_iam_role_policy" "logs" {
 }
 
 resource "aws_lambda_function" "api" {
-  function_name                  = "tagged-api"
-  role                           = aws_iam_role.api.arn
-  runtime                        = "provided.al2023"
-  handler                        = "bootstrap"
-  architectures                  = ["arm64"]
-  filename                       = "${path.module}/../build/tagged.zip"
-  source_code_hash               = filebase64sha256("${path.module}/../build/tagged.zip")
-  timeout                        = 30
-  memory_size                    = 256
-  reserved_concurrent_executions = 2
+  function_name    = "tagged-api"
+  role             = aws_iam_role.api.arn
+  runtime          = "provided.al2023"
+  handler          = "bootstrap"
+  architectures    = ["arm64"]
+  filename         = "${path.module}/../build/tagged.zip"
+  source_code_hash = filebase64sha256("${path.module}/../build/tagged.zip")
+  timeout          = 30
+  memory_size      = 256
 
   environment {
     variables = {
