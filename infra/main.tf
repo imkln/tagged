@@ -56,7 +56,7 @@ resource "aws_cognito_user_pool_client" "web" {
   enable_token_revocation              = true
   explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH"]
   read_attributes                      = ["email", "email_verified"]
-  write_attributes                     = ["email", "email_verified"]
+  write_attributes                     = ["email"]
   id_token_validity                    = 1
   access_token_validity                = 1
 
