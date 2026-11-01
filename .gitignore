@@ -1,0 +1,26 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Photos, runtime data, and build output
+/data/
+/uploads/
+/bin/
+/dist/
+/coverage.out
+
+# Infrastructure state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Editor / OS files
+.DS_Store
+.idea/
+.vscode/
