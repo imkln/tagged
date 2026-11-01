@@ -111,7 +111,7 @@ resource "aws_lambda_function" "api" {
   source_code_hash               = filebase64sha256("${path.module}/../build/tagged.zip")
   timeout                        = 30
   memory_size                    = 256
-  reserved_concurrent_executions = 5
+  reserved_concurrent_executions = 2
 
   environment {
     variables = {
@@ -153,8 +153,8 @@ resource "aws_apigatewayv2_stage" "web" {
   auto_deploy = true
 
   default_route_settings {
-    throttling_burst_limit = 20
-    throttling_rate_limit  = 10
+    throttling_burst_limit = 10
+    throttling_rate_limit  = 2
   }
 }
 
