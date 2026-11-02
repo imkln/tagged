@@ -10,39 +10,53 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
 
 type server struct {
-	config   Config
-	oauth    oauth2.Config
-	verifier *oidc.IDTokenVerifier
-	cookies  *cookieStore
-	assets   http.Handler
-	index    []byte
+	config         Config
+	oauth          oauth2.Config
+	verifier       *oidc.IDTokenVerifier
+	loginCookies   *sessions.CookieStore
+	sessionCookies *sessions.CookieStore
+	assets         http.Handler
+	index          []byte
 }
 
 func New(ctx context.Context, config Config, assets fs.FS) (http.Handler, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
+
 	config.Origin = strings.TrimRight(config.Origin, "/")
 	config.AuthDomain = strings.TrimRight(config.AuthDomain, "/")
+
 	ctx = oidc.ClientContext(ctx, &http.Client{Timeout: 10 * time.Second})
 	provider, err := oidc.NewProvider(ctx, config.Issuer)
 	if err != nil {
 		return nil, fmt.Errorf("discover identity provider: %w", err)
 	}
-	cookies, err := newCookieStore(config.CookieKey, strings.HasPrefix(config.Origin, "https://"))
+
+	secure := strings.HasPrefix(config.Origin, "https://")
+	loginCookies, err := newCookieStore(config.CookieKey, secure, 10*60)
 	if err != nil {
 		return nil, err
 	}
+
+	sessionCookies, err := newCookieStore(config.CookieKey, secure, 60*60)
+	if err != nil {
+		return nil, err
+	}
+
 	index, err := fs.ReadFile(assets, "index.html")
 	if err != nil {
 		return nil, fmt.Errorf("read frontend build: %w", err)
 	}
+
 	endpoint := provider.Endpoint()
 	endpoint.AuthStyle = oauth2.AuthStyleInParams
+
 	app := &server{
 		config: config,
 		oauth: oauth2.Config{
@@ -55,10 +69,12 @@ func New(ctx context.Context, config Config, assets fs.FS) (http.Handler, error)
 			ClientID:             config.ClientID,
 			SupportedSigningAlgs: []string{oidc.RS256},
 		}),
-		cookies: cookies,
-		assets:  http.FileServerFS(assets),
-		index:   index,
+		loginCookies:   loginCookies,
+		sessionCookies: sessionCookies,
+		assets:         http.FileServerFS(assets),
+		index:          index,
 	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", app.page)
 	mux.HandleFunc("GET /auth/login", app.login)
@@ -81,6 +97,7 @@ func (app *server) gallery(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
 	app.page(w, r)
 }
 
@@ -90,6 +107,7 @@ func (app *server) session(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, status, map[string]string{"error": http.StatusText(status)})
 		return
 	}
+
 	writeJSON(w, http.StatusOK, map[string]string{"email": identity.Email})
 }
 
@@ -98,6 +116,7 @@ func (app *server) library(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, status, map[string]string{"error": http.StatusText(status)})
 		return
 	}
+
 	writeJSON(w, http.StatusOK, map[string]any{"photos": []any{}, "total": 0})
 }
 
@@ -111,8 +130,9 @@ func securityHeaders(next http.Handler, authDomain string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self' "+authDomain)
+
 		next.ServeHTTP(w, r)
 	})
 }

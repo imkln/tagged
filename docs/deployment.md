@@ -1,6 +1,6 @@
 # First-time setup and deployment
 
-Complete this guide before running the app locally with Google sign-in. Use `us-east-1` for this setup. Install Python 3, AWS CLI, and GitHub CLI. Run commands from the repository root.
+Complete this guide before running the app locally with Google sign-in. Install Python 3, AWS CLI, and GitHub CLI. Run commands from the repository root.
 
 ## 1. Register Google sign-in
 
@@ -13,10 +13,10 @@ Complete this guide before running the app locally with Google sign-in. Use `us-
    | --- | --- |
    | Application type | Web application |
    | Name | Tagged |
-   | Authorized JavaScript origins → Add URI | `https://<prefix>.auth.us-east-1.amazoncognito.com` |
-   | Authorized redirect URIs → Add URI | `https://<prefix>.auth.us-east-1.amazoncognito.com/oauth2/idpresponse` |
+   | Authorized JavaScript origins → Add URI | `https://<prefix>.auth.<region>.amazoncognito.com` |
+   | Authorized redirect URIs → Add URI | `https://<prefix>.auth.<region>.amazoncognito.com/oauth2/idpresponse` |
 
-   Replace `<prefix>` in both URLs with a unique Cognito domain prefix, for example `tagged-<aws-account-id>`. Use the same value for `COGNITO_DOMAIN_PREFIX` below, then click **Create**.
+   Replace `<region>` with your AWS region and `<prefix>` with a unique Cognito domain prefix, for example `tagged-<aws-account-id>`. Use the same prefix for `COGNITO_DOMAIN_PREFIX` below, then click **Create**.
 5. Copy the displayed **Client ID** and **Client secret** for the GitHub settings in section 3.
 
 Reference: [AWS Google sign-in setup](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-social-idp-google.html).
@@ -38,7 +38,7 @@ The script creates the state bucket, OIDC provider, and deployment role, then cr
 
    | Name | Set by bootstrap |
    | --- | --- |
-   | `AWS_REGION` | `us-east-1` |
+   | `AWS_REGION` | Bootstrap region |
    | `AWS_ROLE_ARN` | Deployment role ARN |
    | `TF_STATE_BUCKET` | Terraform state bucket name |
    | `TF_STATE_KEY` | Terraform state object key |

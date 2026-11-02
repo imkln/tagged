@@ -87,6 +87,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 
 	fixture.issuer = httptest.NewServer(provider)
 	t.Cleanup(fixture.issuer.Close)
+
 	fixture.claims = map[string]any{
 		"iss":            fixture.issuer.URL,
 		"aud":            "test-client",
@@ -102,10 +103,12 @@ func newAuthFixture(t *testing.T) *authFixture {
 	config := validConfig()
 	config.Issuer = fixture.issuer.URL
 	config.AuthDomain = fixture.issuer.URL
+
 	assets := fstest.MapFS{
 		"index.html":    {Data: []byte("<html>Tagged</html>")},
 		"assets/app.js": {Data: []byte("export {}")},
 	}
+
 	fixture.handler, err = New(context.Background(), config, assets)
 	if err != nil {
 		t.Fatalf("create application: %v", err)
@@ -116,6 +119,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 
 func (fixture *authFixture) exchangeToken(t *testing.T, w http.ResponseWriter, r *http.Request) {
 	fixture.exchanges.Add(1)
+
 	if err := r.ParseForm(); err != nil {
 		t.Errorf("parse token request: %v", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
@@ -134,18 +138,21 @@ func (fixture *authFixture) exchangeToken(t *testing.T, w http.ResponseWriter, r
 		http.Error(w, "token generation failed", http.StatusInternalServerError)
 		return
 	}
+
 	object, err := fixture.signer.Sign(claims)
 	if err != nil {
 		t.Errorf("sign token: %v", err)
 		http.Error(w, "token generation failed", http.StatusInternalServerError)
 		return
 	}
+
 	token, err := object.CompactSerialize()
 	if err != nil {
 		t.Errorf("serialize token: %v", err)
 		http.Error(w, "token generation failed", http.StatusInternalServerError)
 		return
 	}
+
 	if fixture.tamperSignature {
 		parts := strings.Split(token, ".")
 		if strings.HasPrefix(parts[2], "A") {
@@ -153,8 +160,10 @@ func (fixture *authFixture) exchangeToken(t *testing.T, w http.ResponseWriter, r
 		} else {
 			parts[2] = "A" + parts[2][1:]
 		}
+
 		token = strings.Join(parts, ".")
 	}
+
 	writeTestJSON(t, w, map[string]any{
 		"id_token":     token,
 		"access_token": "test-access-token",
@@ -168,15 +177,18 @@ func (fixture *authFixture) beginLogin(t *testing.T) loginFlow {
 
 	response := serveRequest(fixture.handler, http.MethodGet, "/auth/login")
 	requireStatus(t, response, http.StatusSeeOther)
+
 	location, err := url.Parse(response.Header().Get("Location"))
 	if err != nil {
 		t.Fatalf("parse login redirect: %v", err)
 	}
+
 	parameters := location.Query()
 	cookies := response.Result().Cookies()
 	if parameters.Get("state") == "" || len(cookies) == 0 {
 		t.Fatal("login did not create an OAuth flow")
 	}
+
 	fixture.challenge = parameters.Get("code_challenge")
 	fixture.claims["nonce"] = parameters.Get("nonce")
 
@@ -197,27 +209,33 @@ func (fixture *authFixture) signIn(t *testing.T) *http.Cookie {
 
 	response := fixture.callback(fixture.beginLogin(t))
 	requireStatus(t, response, http.StatusSeeOther)
+
 	for _, cookie := range response.Result().Cookies() {
 		if cookie.MaxAge > 0 {
 			return cookie
 		}
 	}
+
 	t.Fatal("sign-in did not create a session")
 	return nil
 }
 
 func serveRequest(handler http.Handler, method, path string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, testOrigin+path, nil)
+
 	for _, cookie := range cookies {
 		request.AddCookie(cookie)
 	}
+
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
+
 	return response
 }
 
 func requireStatus(t *testing.T, response *httptest.ResponseRecorder, want int) {
 	t.Helper()
+
 	if response.Code != want {
 		t.Fatalf("status = %d, want %d; body: %s", response.Code, want, response.Body)
 	}
@@ -225,6 +243,7 @@ func requireStatus(t *testing.T, response *httptest.ResponseRecorder, want int) 
 
 func writeTestJSON(t *testing.T, w http.ResponseWriter, value any) {
 	t.Helper()
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(value); err != nil {
 		t.Errorf("write provider response: %v", err)
@@ -233,6 +252,7 @@ func writeTestJSON(t *testing.T, w http.ResponseWriter, value any) {
 
 func decodeResponse(t *testing.T, response *httptest.ResponseRecorder, value any) {
 	t.Helper()
+
 	if err := json.NewDecoder(response.Body).Decode(value); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}

@@ -43,6 +43,18 @@ func TestOwnerCanViewGallery(t *testing.T) {
 	requireStatus(t, response, http.StatusOK)
 }
 
+func TestGalleryPreservesOriginForSignOut(t *testing.T) {
+	fixture := newAuthFixture(t)
+	cookie := fixture.signIn(t)
+
+	response := serveRequest(fixture.handler, http.MethodGet, "/gallery", cookie)
+
+	requireStatus(t, response, http.StatusOK)
+	if policy := response.Header().Get("Referrer-Policy"); policy != "strict-origin-when-cross-origin" {
+		t.Errorf("Referrer-Policy = %q, want strict-origin-when-cross-origin so form submissions retain their origin", policy)
+	}
+}
+
 func TestSessionReturnsOwnerIdentityWithoutCaching(t *testing.T) {
 	fixture := newAuthFixture(t)
 	cookie := fixture.signIn(t)
@@ -50,13 +62,17 @@ func TestSessionReturnsOwnerIdentityWithoutCaching(t *testing.T) {
 	response := serveRequest(fixture.handler, http.MethodGet, "/api/session", cookie)
 
 	requireStatus(t, response, http.StatusOK)
+
 	var session struct {
 		Email string `json:"email"`
 	}
+
 	decodeResponse(t, response, &session)
+
 	if session.Email != "owner@example.test" {
 		t.Errorf("email = %q, want owner@example.test", session.Email)
 	}
+
 	if cacheControl := response.Header().Get("Cache-Control"); cacheControl != "no-store" {
 		t.Errorf("Cache-Control = %q, want no-store", cacheControl)
 	}
@@ -69,11 +85,14 @@ func TestOwnerStartsWithEmptyLibrary(t *testing.T) {
 	response := serveRequest(fixture.handler, http.MethodGet, "/api/library", cookie)
 
 	requireStatus(t, response, http.StatusOK)
+
 	var library struct {
 		Photos []any `json:"photos"`
 		Total  int   `json:"total"`
 	}
+
 	decodeResponse(t, response, &library)
+
 	if library.Photos == nil || len(library.Photos) != 0 || library.Total != 0 {
 		t.Errorf("expected an empty library, got %+v", library)
 	}

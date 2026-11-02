@@ -15,12 +15,15 @@ func TestLoginUsesGoogleWithPKCEAndNonce(t *testing.T) {
 	if got := flow.parameters.Get("identity_provider"); got != "Google" {
 		t.Errorf("identity_provider = %q, want Google", got)
 	}
+
 	if got := flow.parameters.Get("code_challenge_method"); got != "S256" {
 		t.Errorf("code_challenge_method = %q, want S256", got)
 	}
+
 	if flow.parameters.Get("code_challenge") == "" {
 		t.Error("login is missing a PKCE challenge")
 	}
+
 	if flow.parameters.Get("nonce") == "" {
 		t.Error("login is missing a nonce")
 	}
@@ -34,12 +37,15 @@ func TestOwnerReceivesSecureSession(t *testing.T) {
 	if !cookie.Secure {
 		t.Error("session cookie is missing Secure")
 	}
+
 	if !cookie.HttpOnly {
 		t.Error("session cookie is missing HttpOnly")
 	}
+
 	if cookie.SameSite != http.SameSiteLaxMode {
 		t.Errorf("SameSite = %v, want Lax", cookie.SameSite)
 	}
+
 	if cookie.Path != "/" || cookie.Domain != "" {
 		t.Error("session cookie must be host-only with path /")
 	}
@@ -145,9 +151,11 @@ func TestLogoutClearsSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse logout redirect: %v", err)
 	}
+
 	if location.String() == "" || location.Scheme+"://"+location.Host != fixture.issuer.URL || location.Path != "/logout" {
 		t.Errorf("expected provider logout redirect, got %q", location)
 	}
+
 	if got := location.Query().Get("logout_uri"); got != testOrigin+"/" {
 		t.Errorf("logout_uri = %q, want %s/", got, testOrigin)
 	}
@@ -157,11 +165,12 @@ func TestLogoutClearsSession(t *testing.T) {
 			return
 		}
 	}
+
 	t.Error("logout did not clear the session cookie")
 }
 
 func TestLogoutRejectsCrossSiteRequests(t *testing.T) {
-	for _, origin := range []string{"", "https://attacker.example.test"} {
+	for _, origin := range []string{"", "null", "https://attacker.example.test"} {
 		t.Run("origin="+origin, func(t *testing.T) {
 			fixture := newAuthFixture(t)
 			cookie := fixture.signIn(t)
@@ -179,6 +188,7 @@ func TestLogoutRejectsCrossSiteRequests(t *testing.T) {
 
 func requireNoSession(t *testing.T, response *httptest.ResponseRecorder) {
 	t.Helper()
+
 	for _, cookie := range response.Result().Cookies() {
 		if cookie.MaxAge > 0 {
 			t.Error("rejected login received a session cookie")
