@@ -60,6 +60,7 @@ resource "aws_lambda_function" "worker" {
       PHOTO_BUCKET     = aws_s3_bucket.photos.id
       PHOTO_TABLE      = aws_dynamodb_table.photos.name
       MAX_UPLOAD_BYTES = tostring(var.max_upload_bytes)
+      MAX_IMAGE_PIXELS = tostring(var.max_image_pixels)
     }
   }
 

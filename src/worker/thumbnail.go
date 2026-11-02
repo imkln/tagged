@@ -11,8 +11,11 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/disintegration/imaging"
 	"golang.org/x/image/draw"
 )
+
+const DefaultMaxImagePixels int64 = 40_000_000
 
 var (
 	errPhotoNotFound = errors.New("photo not found")
@@ -31,8 +34,9 @@ type photoRecord struct {
 }
 
 type workerConfig struct {
-	Bucket        string
-	ThumbnailEdge int
+	Bucket         string
+	ThumbnailEdge  int
+	MaxImagePixels int64
 }
 
 type photoRepository interface {
@@ -109,7 +113,16 @@ func (worker *thumbnailWorker) process(ctx context.Context, photo photoRecord) e
 		return worker.fail(ctx, photo, "Uploaded size does not match the selected file.", nil)
 	}
 
-	original, err := jpeg.Decode(bytes.NewReader(data))
+	dimensions, err := jpeg.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return worker.fail(ctx, photo, "The uploaded file is not a valid JPEG.", nil)
+	}
+
+	if int64(dimensions.Width) > worker.config.MaxImagePixels/int64(dimensions.Height) {
+		return worker.fail(ctx, photo, "The uploaded image exceeds the configured pixel limit.", nil)
+	}
+
+	original, err := imaging.Decode(bytes.NewReader(data), imaging.AutoOrientation(true))
 	if err != nil {
 		return worker.fail(ctx, photo, "The uploaded file is not a valid JPEG.", nil)
 	}

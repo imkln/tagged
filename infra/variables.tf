@@ -14,6 +14,17 @@ variable "max_upload_bytes" {
   }
 }
 
+variable "max_image_pixels" {
+  description = "Maximum decoded JPEG pixel count accepted by the worker."
+  type        = number
+  default     = 40000000
+
+  validation {
+    condition     = var.max_image_pixels > 0 && floor(var.max_image_pixels) == var.max_image_pixels
+    error_message = "Set a positive whole number of pixels."
+  }
+}
+
 variable "owner_email" {
   description = "Verified Google email allowed to access the library."
   type        = string

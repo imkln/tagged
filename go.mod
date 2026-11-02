@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/disintegration/imaging v1.6.2
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/gorilla/sessions v1.4.0
 	golang.org/x/image v0.47.0

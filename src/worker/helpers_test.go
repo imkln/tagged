@@ -93,8 +93,9 @@ func newWorkerFixture() *workerFixture {
 			contentType: make(map[string]string),
 		},
 		config: workerConfig{
-			Bucket:        "fictional-photo-bucket",
-			ThumbnailEdge: 320,
+			Bucket:         "fictional-photo-bucket",
+			ThumbnailEdge:  320,
+			MaxImagePixels: DefaultMaxImagePixels,
 		},
 	}
 	fixture.worker = newThumbnailWorker(fixture.repository, fixture.objects, fixture.config)

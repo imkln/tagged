@@ -95,9 +95,9 @@ func (objects *s3Photos) Put(ctx context.Context, key, contentType string, data 
 	return err
 }
 
-func NewAWSHandler(ctx context.Context, bucket, table string, maxUploadBytes int64) (func(context.Context, events.S3Event) error, error) {
-	if bucket == "" || table == "" || maxUploadBytes <= 0 {
-		return nil, errors.New("photo bucket, table, and positive maximum upload bytes are required")
+func NewAWSHandler(ctx context.Context, bucket, table string, maxUploadBytes, maxImagePixels int64) (func(context.Context, events.S3Event) error, error) {
+	if bucket == "" || table == "" || maxUploadBytes <= 0 || maxImagePixels <= 0 {
+		return nil, errors.New("photo bucket, table, and positive byte and pixel limits are required")
 	}
 
 	cloud, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRetryMaxAttempts(1))
@@ -108,7 +108,7 @@ func NewAWSHandler(ctx context.Context, bucket, table string, maxUploadBytes int
 	processor := newThumbnailWorker(
 		&dynamoPhotos{client: dynamodb.NewFromConfig(cloud), table: table},
 		&s3Photos{client: s3.NewFromConfig(cloud), bucket: bucket, maxUploadBytes: maxUploadBytes},
-		workerConfig{Bucket: bucket, ThumbnailEdge: 640},
+		workerConfig{Bucket: bucket, ThumbnailEdge: 640, MaxImagePixels: maxImagePixels},
 	)
 	return processor.HandleS3Event, nil
 }
