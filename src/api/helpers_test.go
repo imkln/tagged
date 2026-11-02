@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -47,7 +49,7 @@ func validConfig() Config {
 	}
 }
 
-func newAuthFixture(t *testing.T) *authFixture {
+func newAuthFixture(t *testing.T, options ...Option) *authFixture {
 	t.Helper()
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -109,7 +111,7 @@ func newAuthFixture(t *testing.T) *authFixture {
 		"assets/app.js": {Data: []byte("export {}")},
 	}
 
-	fixture.handler, err = New(context.Background(), config, assets)
+	fixture.handler, err = New(context.Background(), config, assets, options...)
 	if err != nil {
 		t.Fatalf("create application: %v", err)
 	}
@@ -256,4 +258,101 @@ func decodeResponse(t *testing.T, response *httptest.ResponseRecorder, value any
 	if err := json.NewDecoder(response.Body).Decode(value); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
+}
+
+type memoryPhotoRepository struct {
+	records map[string]photoRecord
+	failure error
+}
+
+func (repository *memoryPhotoRepository) Create(_ context.Context, photo photoRecord) error {
+	if repository.failure != nil {
+		return repository.failure
+	}
+
+	if _, exists := repository.records[photo.ID]; exists {
+		return errPhotoConflict
+	}
+
+	repository.records[photo.ID] = photo
+	return nil
+}
+
+func (repository *memoryPhotoRepository) Get(_ context.Context, id string) (photoRecord, error) {
+	if repository.failure != nil {
+		return photoRecord{}, repository.failure
+	}
+
+	photo, exists := repository.records[id]
+	if !exists {
+		return photoRecord{}, errPhotoNotFound
+	}
+
+	return photo, nil
+}
+
+func (repository *memoryPhotoRepository) List(_ context.Context) ([]photoRecord, error) {
+	if repository.failure != nil {
+		return nil, repository.failure
+	}
+
+	return slices.Collect(maps.Values(repository.records)), nil
+}
+
+type photoSignature struct {
+	key         string
+	contentType string
+	size        int64
+	ttl         time.Duration
+}
+
+type memoryPhotoObjects struct {
+	uploads   []photoSignature
+	downloads []photoSignature
+}
+
+func (objects *memoryPhotoObjects) PresignUpload(_ context.Context, key, contentType string, size int64, ttl time.Duration) (string, error) {
+	objects.uploads = append(objects.uploads, photoSignature{key: key, contentType: contentType, size: size, ttl: ttl})
+	return "https://storage.example.test/" + url.PathEscape(key) + "?upload=signature", nil
+}
+
+func (objects *memoryPhotoObjects) PresignDownload(_ context.Context, key string, ttl time.Duration) (string, error) {
+	objects.downloads = append(objects.downloads, photoSignature{key: key, ttl: ttl})
+	return "https://storage.example.test/" + url.PathEscape(key) + "?download=signature", nil
+}
+
+type photoFixture struct {
+	repository *memoryPhotoRepository
+	objects    *memoryPhotoObjects
+	library    *photoLibrary
+	config     photoConfig
+}
+
+func newPhotoFixture() *photoFixture {
+	fixture := &photoFixture{
+		repository: &memoryPhotoRepository{records: make(map[string]photoRecord)},
+		objects:    &memoryPhotoObjects{},
+		config: photoConfig{
+			Bucket:         "fictional-photo-bucket",
+			MaxUploadBytes: 32 << 20,
+			UploadTTL:      5 * time.Minute,
+			DownloadTTL:    time.Minute,
+		},
+	}
+	fixture.library = newPhotoLibrary(fixture.repository, fixture.objects, fixture.config)
+	return fixture
+}
+
+func (fixture *photoFixture) seed(status string) photoRecord {
+	photo := photoRecord{
+		ID:           "photo-garden",
+		Filename:     "garden.jpg",
+		ContentType:  "image/jpeg",
+		Size:         100,
+		Status:       status,
+		OriginalKey:  "originals/photo-garden",
+		ThumbnailKey: "thumbnails/photo-garden.jpg",
+	}
+	fixture.repository.records[photo.ID] = photo
+	return photo
 }

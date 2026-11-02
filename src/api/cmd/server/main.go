@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -31,6 +32,18 @@ func main() {
 		OwnerEmail:   os.Getenv("OWNER_EMAIL"),
 		OwnerSubject: os.Getenv("OWNER_SUBJECT"),
 		CookieKey:    os.Getenv("COOKIE_KEY"),
+		PhotoBucket:  os.Getenv("PHOTO_BUCKET"),
+		PhotoTable:   os.Getenv("PHOTO_TABLE"),
+	}
+
+	if raw := os.Getenv("MAX_UPLOAD_BYTES"); raw != "" {
+		maximum, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || maximum <= 0 {
+			slog.Error("MAX_UPLOAD_BYTES must be a positive number")
+			os.Exit(1)
+		}
+
+		config.MaxUploadBytes = maximum
 	}
 
 	handler, err := api.New(context.Background(), config, os.DirFS(*assets))

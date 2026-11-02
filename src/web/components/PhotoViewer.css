@@ -1,0 +1,33 @@
+.photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  padding: 24px;
+  background: #111e;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.photo-viewer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
+
+.photo-viewer button {
+  border: 1px solid #747d70;
+  border-radius: 6px;
+  background: #292e29;
+  color: inherit;
+  padding: 10px 18px;
+}
+
+.photo-viewer > img {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  object-fit: contain;
+}

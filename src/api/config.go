@@ -10,16 +10,27 @@ import (
 )
 
 type Config struct {
-	Origin       string
-	Issuer       string
-	ClientID     string
-	AuthDomain   string
-	OwnerEmail   string
-	OwnerSubject string
-	CookieKey    string
+	Origin         string
+	Issuer         string
+	ClientID       string
+	AuthDomain     string
+	OwnerEmail     string
+	OwnerSubject   string
+	CookieKey      string
+	PhotoBucket    string
+	PhotoTable     string
+	MaxUploadBytes int64
 }
 
 func (config Config) Validate() error {
+	if (config.PhotoBucket == "") != (config.PhotoTable == "") {
+		return errors.New("photo bucket and photo table must be configured together")
+	}
+
+	if config.MaxUploadBytes < 0 {
+		return errors.New("maximum upload size must be positive")
+	}
+
 	address, err := mail.ParseAddress(config.OwnerEmail)
 	if err != nil || address.Address != config.OwnerEmail {
 		return errors.New("a valid owner email is required")

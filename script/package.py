@@ -8,3 +8,6 @@ with ZipFile(root / "build/tagged.zip", "w", ZIP_DEFLATED) as archive:
     for path in sorted((root / "src/web/dist").rglob("*")):
         if path.is_file():
             archive.write(path, Path("web") / path.relative_to(root / "src/web/dist"))
+
+with ZipFile(root / "build/worker.zip", "w", ZIP_DEFLATED) as archive:
+    archive.write(root / "build/worker/bootstrap", "bootstrap")

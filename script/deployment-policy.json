@@ -19,7 +19,10 @@
     {
       "Effect": "Allow",
       "Action": ["lambda:*"],
-      "Resource": "arn:${partition}:lambda:${region}:${account}:function:tagged-api"
+      "Resource": [
+        "arn:${partition}:lambda:${region}:${account}:function:tagged-api",
+        "arn:${partition}:lambda:${region}:${account}:function:tagged-worker"
+      ]
     },
     {
       "Effect": "Allow",
@@ -37,12 +40,18 @@
         "iam:TagRole",
         "iam:UntagRole"
       ],
-      "Resource": "arn:${partition}:iam::${account}:role/tagged-api-*"
+      "Resource": [
+        "arn:${partition}:iam::${account}:role/tagged-api-*",
+        "arn:${partition}:iam::${account}:role/tagged-worker-*"
+      ]
     },
     {
       "Effect": "Allow",
       "Action": ["iam:PassRole"],
-      "Resource": "arn:${partition}:iam::${account}:role/tagged-api-*",
+      "Resource": [
+        "arn:${partition}:iam::${account}:role/tagged-api-*",
+        "arn:${partition}:iam::${account}:role/tagged-worker-*"
+      ],
       "Condition": {
         "StringEquals": {
           "iam:PassedToService": "lambda.amazonaws.com"
@@ -94,8 +103,43 @@
       ],
       "Resource": [
         "arn:${partition}:logs:${region}:${account}:log-group:/aws/lambda/tagged-api",
-        "arn:${partition}:logs:${region}:${account}:log-group:/aws/lambda/tagged-api:*"
+        "arn:${partition}:logs:${region}:${account}:log-group:/aws/lambda/tagged-api:*",
+        "arn:${partition}:logs:${region}:${account}:log-group:/aws/lambda/tagged-worker",
+        "arn:${partition}:logs:${region}:${account}:log-group:/aws/lambda/tagged-worker:*"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:ListBucket",
+        "s3:GetBucket*",
+        "s3:PutBucket*",
+        "s3:DeleteBucket*",
+        "s3:GetEncryptionConfiguration",
+        "s3:PutEncryptionConfiguration",
+        "s3:GetAccelerateConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetReplicationConfiguration"
+      ],
+      "Resource": "arn:${partition}:s3:::tagged-photos-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:UpdateTable",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:UpdateTimeToLive",
+        "dynamodb:ListTagsOfResource",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource"
+      ],
+      "Resource": "arn:${partition}:dynamodb:${region}:${account}:table/tagged-photos"
     }
   ]
 }

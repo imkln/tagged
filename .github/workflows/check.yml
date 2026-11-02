@@ -35,7 +35,7 @@ jobs:
       - run: bun run --bun prettier --check '../../.github/workflows/*.yml' ../../script/deployment-policy.json
         working-directory: src/web
 
-      - run: test -z "$(gofmt -l src/api)"
+      - run: test -z "$(gofmt -l src/api src/worker)"
 
       - run: make test
 

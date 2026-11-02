@@ -43,3 +43,15 @@ bun run --cwd src/web --bun dev
 Open **http://localhost:5173** and sign in with Google.
 
 Frontend edits reload automatically. Restart the API after Go changes.
+
+## 4. Configure photo uploads
+
+Photo uploads require deployed photo resources and the worker. Use AWS
+credentials with access to the configured bucket and table when running the API.
+
+```sh
+export AWS_REGION="<deployment region>"
+export PHOTO_BUCKET="<photo_bucket Terraform output>"
+export PHOTO_TABLE="<photo_table Terraform output>"
+export MAX_UPLOAD_BYTES="268435456"
+```
