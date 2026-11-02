@@ -114,17 +114,20 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      APP_ORIGIN     = local.origin
-      OIDC_ISSUER    = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.owner.id}"
-      OIDC_CLIENT_ID = aws_cognito_user_pool_client.web.id
-      AUTH_DOMAIN    = "https://${aws_cognito_user_pool_domain.login.domain}.auth.${var.aws_region}.amazoncognito.com"
-      OWNER_EMAIL    = var.owner_email
-      OWNER_SUBJECT  = var.owner_subject
-      COOKIE_KEY     = random_id.cookie_key.hex
+      APP_ORIGIN       = local.origin
+      OIDC_ISSUER      = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.owner.id}"
+      OIDC_CLIENT_ID   = aws_cognito_user_pool_client.web.id
+      AUTH_DOMAIN      = "https://${aws_cognito_user_pool_domain.login.domain}.auth.${var.aws_region}.amazoncognito.com"
+      OWNER_EMAIL      = var.owner_email
+      OWNER_SUBJECT    = var.owner_subject
+      COOKIE_KEY       = random_id.cookie_key.hex
+      PHOTO_BUCKET     = aws_s3_bucket.photos.id
+      PHOTO_TABLE      = aws_dynamodb_table.photos.name
+      MAX_UPLOAD_BYTES = tostring(var.max_upload_bytes)
     }
   }
 
-  depends_on = [aws_iam_role_policy.logs]
+  depends_on = [aws_iam_role_policy.logs, aws_iam_role_policy.photos_api]
 }
 
 resource "aws_apigatewayv2_api" "web" {
@@ -152,8 +155,8 @@ resource "aws_apigatewayv2_stage" "web" {
   auto_deploy = true
 
   default_route_settings {
-    throttling_burst_limit = 10
-    throttling_rate_limit  = 2
+    throttling_burst_limit = 40
+    throttling_rate_limit  = 20
   }
 }
 
@@ -163,4 +166,28 @@ resource "aws_lambda_permission" "gateway" {
   function_name = aws_lambda_function.api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.web.execution_arn}/*/*"
+}
+
+resource "aws_iam_role_policy" "photos_api" {
+  role = aws_iam_role.api.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Scan"]
+        Resource = aws_dynamodb_table.photos.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.photos.arn}/originals/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = ["${aws_s3_bucket.photos.arn}/originals/*", "${aws_s3_bucket.photos.arn}/thumbnails/*"]
+      }
+    ]
+  })
 }

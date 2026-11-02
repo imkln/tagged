@@ -17,3 +17,11 @@ output "oidc_issuer" {
 output "auth_domain" {
   value = "https://${aws_cognito_user_pool_domain.login.domain}.auth.${var.aws_region}.amazoncognito.com"
 }
+
+output "photo_bucket" {
+  value = aws_s3_bucket.photos.id
+}
+
+output "photo_table" {
+  value = aws_dynamodb_table.photos.name
+}

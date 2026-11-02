@@ -3,6 +3,17 @@ variable "aws_region" {
   type        = string
 }
 
+variable "max_upload_bytes" {
+  description = "Maximum JPEG upload size in bytes; this is not a pixel limit."
+  type        = number
+  default     = 268435456
+
+  validation {
+    condition     = var.max_upload_bytes > 0 && floor(var.max_upload_bytes) == var.max_upload_bytes
+    error_message = "Set a positive whole number of bytes."
+  }
+}
+
 variable "owner_email" {
   description = "Verified Google email allowed to access the library."
   type        = string

@@ -5,11 +5,19 @@ import App from './App';
 afterEach(() => vi.unstubAllGlobals());
 
 function mockSession(status: number, body: unknown) {
-  const fetchSession = vi.fn().mockResolvedValue({
-    status,
-    ok: status >= 200 && status < 300,
-    json: async () => body,
-  });
+  const fetchSession = vi.fn(async (url: string) =>
+    url === '/api/photos'
+      ? {
+          status: 200,
+          ok: true,
+          json: async () => ({ photos: [], total: 0 }),
+        }
+      : {
+          status,
+          ok: status >= 200 && status < 300,
+          json: async () => body,
+        },
+  );
 
   vi.stubGlobal('fetch', fetchSession);
 }
@@ -37,7 +45,9 @@ it('shows the owner an empty gallery and a sign-out form', async () => {
   expect(
     await screen.findByRole('heading', { name: 'Gallery' }),
   ).toBeInTheDocument();
-  expect(screen.getByText('Your library starts here')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Your library starts here'),
+  ).toBeInTheDocument();
   expect(screen.getByText('0 photos')).toBeInTheDocument();
 
   const signOut = screen
@@ -71,11 +81,14 @@ it('lets the user retry after a connection failure', async () => {
   const fetchSession = vi
     .fn()
     .mockRejectedValueOnce(new Error('offline'))
-    .mockResolvedValue({
+    .mockImplementation(async (url: string) => ({
       status: 200,
       ok: true,
-      json: async () => ({ email: 'owner@example.test' }),
-    });
+      json: async () =>
+        url === '/api/photos'
+          ? { photos: [], total: 0 }
+          : { email: 'owner@example.test' },
+    }));
 
   vi.stubGlobal('fetch', fetchSession);
 
