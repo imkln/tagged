@@ -1,0 +1,53 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.9
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.4
+
+      - run: bun install --frozen-lockfile
+        working-directory: src/web
+
+      - run: bun run --bun format:check
+        working-directory: src/web
+
+      - run: bun run --bun prettier --check '../../.github/workflows/*.yml' ../../script/deployment-policy.json
+        working-directory: src/web
+
+      - run: test -z "$(gofmt -l src/api)"
+
+      - run: make test
+
+      - run: go vet ./...
+
+      - run: make package
+
+      - run: terraform fmt -check
+        working-directory: infra
+
+      - run: terraform init -backend=false -input=false
+        working-directory: infra
+
+      - run: terraform validate
+        working-directory: infra

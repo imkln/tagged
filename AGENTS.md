@@ -8,3 +8,8 @@
 - When the owner says a review is ready, read GitHub feedback and push fixes to the same PR. Keep the issue/PR current with decisions made in chat.
 - Leave merging and resolving the owner's review threads to the owner unless explicitly asked.
 - Include infrastructure changes and expected costs in the PR. Apply AWS changes only when explicitly instructed.
+- Write readable, maintainable code with clear names and responsibilities. Avoid speculative abstractions; comment only when a non-obvious reason needs explaining.
+- Follow TDD: write meaningful behavior tests, run them and confirm they fail before implementing the behavior, then implement and refactor with the tests passing.
+- Present tests for the owner's review and wait for approval before implementing the behavior.
+- Use idiomatic structure and standard automated formatting for all code and configuration. Separate components, styles, and responsibilities logically. Keep tests as readable as production code, with focused cases, descriptive names, and checked setup errors.
+- Never commit or push personally identifiable information or secrets, including in fixtures, logs, or generated files. Use fictional test identities and external configuration; inspect staged changes before committing.

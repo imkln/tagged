@@ -1,0 +1,13 @@
+# Web
+/src/web/node_modules/
+/src/web/dist/
+
+# Build output
+/build/
+
+# Terraform
+/infra/.terraform/
+/infra/*.tfstate
+/infra/*.tfstate.*
+/infra/*.tfvars
+/infra/*.tfplan
