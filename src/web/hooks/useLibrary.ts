@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export type Tag = { id: string; name: string; count?: number; path?: string[] };
 
 export type Photo = {
-  attributions?: { name: string; url?: string }[];
   tags?: Tag[];
   id: string;
   filename: string;
@@ -17,8 +16,6 @@ export type Photo = {
   height?: number;
   cameraMake?: string;
   cameraModel?: string;
-  latitude?: number;
-  longitude?: number;
 };
 
 export type Upload = {

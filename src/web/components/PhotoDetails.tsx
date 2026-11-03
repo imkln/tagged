@@ -11,13 +11,6 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
     Number.isInteger(photo.height) &&
     photo.width! > 0 &&
     photo.height! > 0;
-  const hasCoordinates =
-    typeof photo.latitude === 'number' &&
-    typeof photo.longitude === 'number' &&
-    Number.isFinite(photo.latitude) &&
-    Number.isFinite(photo.longitude) &&
-    Math.abs(photo.latitude) <= 90 &&
-    Math.abs(photo.longitude) <= 180;
 
   const fields = [
     { label: 'Filename', value: photo.filename },
@@ -29,12 +22,6 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
       value: hasDimensions ? `${photo.width} × ${photo.height}` : undefined,
     },
     { label: 'Camera', value: camera },
-    {
-      label: 'GPS',
-      value: hasCoordinates
-        ? `${photo.latitude}, ${photo.longitude}`
-        : undefined,
-    },
   ];
 
   return (
@@ -49,29 +36,6 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
               </span>
             ))}
           </div>
-          {photo.attributions?.length ? (
-            <div className="tag-attributions">
-              Location data from
-              <br />
-              {photo.attributions.map((credit, index) => (
-                <Fragment key={`${credit.name}-${credit.url ?? ''}`}>
-                  {index > 0 ? ' ' : null}
-                  {credit.url ? (
-                    <a
-                      key={`${credit.name}-${credit.url}`}
-                      href={credit.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {credit.name}
-                    </a>
-                  ) : (
-                    <span>{credit.name}</span>
-                  )}
-                </Fragment>
-              ))}
-            </div>
-          ) : null}
         </section>
       ) : null}
       <section className="photo-details-section">

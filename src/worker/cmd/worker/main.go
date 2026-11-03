@@ -33,12 +33,7 @@ func main() {
 		maximumPixels = parsed
 	}
 
-	var places worker.PlaceResolver
-	if apiKey := os.Getenv("GEOAPIFY_API_KEY"); apiKey != "" {
-		places = worker.NewGeoapifyResolver(apiKey, nil)
-	}
-
-	handler, err := worker.NewAWSHandler(context.Background(), os.Getenv("PHOTO_BUCKET"), os.Getenv("PHOTO_TABLE"), maximum, maximumPixels, places)
+	handler, err := worker.NewAWSHandler(context.Background(), os.Getenv("PHOTO_BUCKET"), os.Getenv("PHOTO_TABLE"), maximum, maximumPixels)
 	if err != nil {
 		slog.Error("thumbnail worker startup failed", "error", err)
 		os.Exit(1)

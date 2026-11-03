@@ -25,7 +25,6 @@ jobs:
       TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
       TF_VAR_aws_region: ${{ vars.AWS_REGION }}
       TF_VAR_google_client_id: ${{ vars.GOOGLE_CLIENT_ID }}
-      TF_VAR_geoapify_api_key: ${{ secrets.GEOAPIFY_API_KEY }}
       TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       TF_VAR_cognito_domain_prefix: ${{ vars.COGNITO_DOMAIN_PREFIX }}
       TF_VAR_owner_email: ${{ secrets.OWNER_EMAIL }}

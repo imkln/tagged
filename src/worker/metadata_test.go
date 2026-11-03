@@ -35,7 +35,7 @@ func TestWorkerSavesOrientedFullImageDimensions(t *testing.T) {
 	}
 }
 
-func TestWorkerExtractsCameraCaptureDateAndGPS(t *testing.T) {
+func TestWorkerExtractsCameraAndCaptureDate(t *testing.T) {
 	for _, offset := range []string{"", "+02:00"} {
 		t.Run("offset="+offset, func(t *testing.T) {
 			data := metadataJPEG(t, "2026:07:12 09:30:00", offset)
@@ -46,8 +46,6 @@ func TestWorkerExtractsCameraCaptureDateAndGPS(t *testing.T) {
 				"capturedAt":  "2026-07-12T09:30:00" + offset,
 				"cameraMake":  "Example Camera",
 				"cameraModel": "Model One",
-				"latitude":    float64(-12.5),
-				"longitude":   float64(-45.25),
 			} {
 				if saved[key] != want {
 					t.Errorf("%s = %v, want %v", key, saved[key], want)
@@ -77,7 +75,7 @@ func TestWorkerAcceptsMissingAndMalformedEXIF(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			saved := processMetadataJPEG(t, data)
 
-			for _, key := range []string{"capturedAt", "cameraMake", "cameraModel", "latitude", "longitude", "country", "region", "city"} {
+			for _, key := range []string{"capturedAt", "cameraMake", "cameraModel"} {
 				if _, exists := saved[key]; exists {
 					t.Errorf("unavailable %s should be omitted", key)
 				}
@@ -153,19 +151,9 @@ func metadataJPEG(t *testing.T, date, offset string) []byte {
 		return entry{tag, 4, 1, data}
 	}
 
-	rational := func(tag uint16, degrees, minutes uint32) entry {
-		data := make([]byte, 24)
-		for i, value := range []uint32{degrees, 1, minutes, 1, 0, 1} {
-			binary.LittleEndian.PutUint32(data[i*4:], value)
-		}
-
-		return entry{tag, 5, 3, data}
-	}
-
 	rootOffset := uint32(8)
-	exifOffset := rootOffset + 2 + 4*12 + 4
-	gpsOffset := exifOffset + 2 + 2*12 + 4
-	payloadOffset := gpsOffset + 2 + 4*12 + 4
+	exifOffset := rootOffset + 2 + 3*12 + 4
+	payloadOffset := exifOffset + 2 + 2*12 + 4
 	tiff := make([]byte, payloadOffset)
 	copy(tiff, []byte{'I', 'I', 42, 0, 8, 0, 0, 0})
 
@@ -189,7 +177,6 @@ func metadataJPEG(t *testing.T, date, offset string) []byte {
 		ascii(0x010f, "Example Camera"),
 		ascii(0x0110, "Model One"),
 		pointer(0x8769, exifOffset),
-		pointer(0x8825, gpsOffset),
 	})
 
 	capture := []entry{ascii(0x9003, date)}
@@ -198,12 +185,6 @@ func metadataJPEG(t *testing.T, date, offset string) []byte {
 	}
 
 	writeIFD(exifOffset, capture)
-	writeIFD(gpsOffset, []entry{
-		ascii(1, "S"),
-		rational(2, 12, 30),
-		ascii(3, "W"),
-		rational(4, 45, 15),
-	})
 
 	return insertMetadata(fictionalJPEG(t, 80, 40), append([]byte("Exif\x00\x00"), tiff...))
 }

@@ -161,16 +161,6 @@
   font-size: 12px;
 }
 
-.tag-attributions {
-  margin-top: 20px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.tag-attributions a {
-  color: inherit;
-}
-
 @media (max-width: 600px) {
   .viewer-header {
     padding: 0 8px;

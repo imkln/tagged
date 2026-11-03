@@ -2,31 +2,24 @@ package worker
 
 import (
 	"bytes"
-	"math"
 	"strings"
 	"time"
 
 	"github.com/bep/imagemeta"
-	"github.com/imkln/tagged/src/tags"
 )
 
-func extractMetadata(data []byte, photo *photoRecord) Place {
-	embedded := Place{}
+func extractMetadata(data []byte, photo *photoRecord) {
 	var fields imagemeta.Tags
 
 	_, _ = imagemeta.Decode(imagemeta.Options{
-		R: bytes.NewReader(data), ImageFormat: imagemeta.JPEG, Sources: imagemeta.EXIF | imagemeta.XMP | imagemeta.IPTC,
+		R: bytes.NewReader(data), ImageFormat: imagemeta.JPEG, Sources: imagemeta.EXIF,
 		ShouldHandleTag: func(tag imagemeta.TagInfo) bool {
-			if tag.Source != imagemeta.EXIF {
-				return tag.Tag == "Country" || tag.Tag == "City"
-			}
-
 			if !strings.HasPrefix(tag.Namespace, "IFD0") {
 				return false
 			}
 
 			switch tag.Tag {
-			case "Make", "Model", "DateTimeOriginal", "OffsetTimeOriginal", "GPSLatitude", "GPSLatitudeRef", "GPSLongitude", "GPSLongitudeRef":
+			case "Make", "Model", "DateTimeOriginal", "OffsetTimeOriginal":
 				return true
 			}
 
@@ -39,21 +32,6 @@ func extractMetadata(data []byte, photo *photoRecord) Place {
 		},
 	})
 
-	// Metadata is optional: retain valid fields decoded before a malformed field.
-	for _, name := range []string{"Country", "City"} {
-		for _, source := range []map[string]imagemeta.TagInfo{fields.XMP(), fields.IPTC()} {
-			if value, ok := source[name].Value.(string); ok && strings.TrimSpace(value) != "" {
-				if name == "Country" {
-					embedded.Country = value
-				} else {
-					embedded.City = value
-				}
-				break
-			}
-		}
-	}
-
-	applyPlaceTags(photo, embedded)
 	exif := fields.EXIF()
 	text := func(name string) string {
 		value, _ := exif[name].Value.(string)
@@ -72,36 +50,4 @@ func extractMetadata(data []byte, photo *photoRecord) Place {
 			}
 		}
 	}
-
-	latitude, hasLatitude := exif["GPSLatitude"].Value.(float64)
-	longitude, hasLongitude := exif["GPSLongitude"].Value.(float64)
-	northSouth, eastWest := text("GPSLatitudeRef"), text("GPSLongitudeRef")
-	if !hasLatitude || !hasLongitude || (northSouth != "N" && northSouth != "S") || (eastWest != "E" && eastWest != "W") {
-		return embedded
-	}
-
-	if math.IsNaN(latitude) || math.IsNaN(longitude) || latitude < 0 || latitude > 90 || longitude < 0 || longitude > 180 {
-		return embedded
-	}
-
-	if northSouth == "S" {
-		latitude = -latitude
-	}
-
-	if eastWest == "W" {
-		longitude = -longitude
-	}
-
-	photo.Latitude, photo.Longitude = &latitude, &longitude
-
-	return embedded
-}
-
-func applyPlaceTags(photo *photoRecord, place Place) {
-	paths := [][]string{{place.Country}}
-	if strings.TrimSpace(place.City) != "" && tags.Normalize(place.City) != tags.Normalize(place.Country) {
-		paths = append(paths, []string{place.Country, place.City})
-	}
-
-	photo.Tags = tags.ReplaceSourcePaths(photo.Tags, paths, "metadata")
 }

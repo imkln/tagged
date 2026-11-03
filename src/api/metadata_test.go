@@ -61,8 +61,6 @@ func TestLibraryReturnsPrivateMetadataAndOmitsUnavailableFields(t *testing.T) {
 		"height":      40,
 		"cameraMake":  "Example Camera",
 		"cameraModel": "Model One",
-		"latitude":    0.0,
-		"longitude":   0.0,
 	})
 	seedMetadataPhoto(t, photos, map[string]any{"id": "missing"})
 
@@ -91,8 +89,6 @@ func TestLibraryReturnsPrivateMetadataAndOmitsUnavailableFields(t *testing.T) {
 		"height":      float64(40),
 		"cameraMake":  "Example Camera",
 		"cameraModel": "Model One",
-		"latitude":    0.0,
-		"longitude":   0.0,
 	} {
 		if complete[key] != want {
 			t.Errorf("%s = %v, want %v", key, complete[key], want)
@@ -106,7 +102,7 @@ func TestLibraryReturnsPrivateMetadataAndOmitsUnavailableFields(t *testing.T) {
 	for _, path := range []string{"/api/photos"} {
 		denied := serveRequest(fixture.handler, http.MethodGet, path)
 		requireStatus(t, denied, http.StatusUnauthorized)
-		if strings.Contains(denied.Body.String(), "Exampleland") || strings.Contains(denied.Body.String(), "latitude") {
+		if strings.Contains(denied.Body.String(), "Example Camera") {
 			t.Error("metadata disclosed without session")
 		}
 	}

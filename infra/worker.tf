@@ -57,7 +57,6 @@ resource "aws_lambda_function" "worker" {
 
   environment {
     variables = {
-      GEOAPIFY_API_KEY = var.geoapify_api_key
       PHOTO_BUCKET     = aws_s3_bucket.photos.id
       PHOTO_TABLE      = aws_dynamodb_table.photos.name
       MAX_UPLOAD_BYTES = tostring(var.max_upload_bytes)

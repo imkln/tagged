@@ -56,7 +56,6 @@ The script creates the state bucket, OIDC provider, and deployment role, then cr
    | --- | --- |
    | `GOOGLE_CLIENT_SECRET` | Client secret copied from Google |
    | `OWNER_EMAIL` | Google email allowed to access Tagged |
-   | `GEOAPIFY_API_KEY` | API key from a [Geoapify project](https://myprojects.geoapify.com/) |
 
 ## 4. Deploy from GitHub Actions
 

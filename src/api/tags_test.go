@@ -161,8 +161,8 @@ func TestTagCatalogAndSearchRequireOwner(t *testing.T) {
 func seedTaggedPhotos(t *testing.T, photos *photoFixture) {
 	t.Helper()
 
-	country := map[string]any{"id": "tag-country", "name": "Exampleland", "sources": []string{"metadata"}}
-	city := map[string]any{"id": "tag-city", "name": "Garden", "path": []string{"Exampleland", "Garden"}, "sources": []string{"metadata"}}
+	country := map[string]any{"id": "tag-country", "name": "Exampleland", "sources": []string{"manual"}}
+	city := map[string]any{"id": "tag-city", "name": "Garden", "path": []string{"Exampleland", "Garden"}, "sources": []string{"manual"}}
 	cat := map[string]any{"id": "tag-cat", "name": "Cat", "sources": []string{"manual"}}
 
 	for _, photo := range []map[string]any{

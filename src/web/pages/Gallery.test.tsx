@@ -595,23 +595,21 @@ it.each([
       height: 800,
       cameraMake: 'Example Camera',
       cameraModel: 'Model One',
-      latitude: -12.5,
-      longitude: -45.25,
     },
-    present: ['Capture date', 'Upload date', 'Dimensions', 'Camera', 'GPS'],
+    present: ['Capture date', 'Upload date', 'Dimensions', 'Camera'],
     absent: [],
   },
   {
     name: 'upload date only',
     metadata: { uploadedAt: '2026-08-01T12:00:00Z' },
     present: ['Upload date'],
-    absent: ['Capture date', 'Dimensions', 'Camera', 'GPS'],
+    absent: ['Capture date', 'Dimensions', 'Camera'],
   },
   {
     name: 'no metadata',
     metadata: {},
     present: [],
-    absent: ['Capture date', 'Upload date', 'Dimensions', 'Camera', 'GPS'],
+    absent: ['Capture date', 'Upload date', 'Dimensions', 'Camera'],
   },
 ])(
   'shows available metadata in details without inventing missing fields: $name',
@@ -644,7 +642,6 @@ it.each([
       expect(within(viewer).getByText(/400\s*×\s*800/)).toBeInTheDocument();
       expect(within(viewer).getByText(/Example Camera/)).toBeInTheDocument();
       expect(within(viewer).getByText(/Model One/)).toBeInTheDocument();
-      expect(within(viewer).getByText(/-12\.5/)).toHaveTextContent('-45.25');
     }
 
     expect(
@@ -836,44 +833,4 @@ it('keeps loaded photos after a failed scroll page and retries explicitly', asyn
     await screen.findByRole('img', { name: 'lake.jpg' }),
   ).toBeInTheDocument();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-});
-
-it('shows lookup attribution alongside generated tags', async () => {
-  mockLibrary([
-    {
-      ...readyPhoto,
-      tags: [{ id: 'tag-city', name: 'Garden' }],
-      attributions: [
-        { name: 'Geoapify', url: 'https://www.geoapify.com/' },
-        {
-          name: '© OpenStreetMap contributors',
-          url: 'https://www.openstreetmap.org/copyright',
-        },
-      ],
-    },
-  ]);
-  showGallery();
-
-  await screen.findByRole('img', { name: 'garden.jpg' });
-
-  expect(
-    screen.queryByRole('link', { name: 'Geoapify' }),
-  ).not.toBeInTheDocument();
-  expect(
-    screen.queryByRole('link', { name: '© OpenStreetMap contributors' }),
-  ).not.toBeInTheDocument();
-
-  fireEvent.click(screen.getByRole('img', { name: 'garden.jpg' }));
-
-  const viewer = screen.getByRole('dialog');
-  const toggle = within(viewer).getByRole('button', { name: /photo details/i });
-  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
-
-  expect(within(viewer).getByText('Garden')).toBeInTheDocument();
-  expect(
-    within(viewer).getByRole('link', { name: 'Geoapify' }),
-  ).toHaveAttribute('href', 'https://www.geoapify.com/');
-  expect(
-    within(viewer).getByRole('link', { name: '© OpenStreetMap contributors' }),
-  ).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright');
 });
