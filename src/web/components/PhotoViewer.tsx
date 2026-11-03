@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Photo } from '../hooks/useLibrary';
+import PhotoDetails from './PhotoDetails';
 import './PhotoViewer.css';
 
 export default function PhotoViewer({
@@ -65,8 +66,8 @@ export default function PhotoViewer({
         }
         if (event.key === 'Tab') {
           const buttons = Array.from(
-            dialog.current?.querySelectorAll<HTMLButtonElement>(
-              'button:not(:disabled)',
+            dialog.current?.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), a[href]',
             ) ?? [],
           );
           const first = buttons[0];
@@ -157,12 +158,7 @@ export default function PhotoViewer({
         {detailsOpen && (
           <aside className="photo-details" id={detailsId}>
             <h2>Photo details</h2>
-            <dl>
-              <dt>Filename</dt>
-              <dd>{current.filename}</dd>
-              <dt>Format</dt>
-              <dd>JPEG</dd>
-            </dl>
+            <PhotoDetails photo={current} />
           </aside>
         )}
       </div>

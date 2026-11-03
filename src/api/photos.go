@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/imkln/tagged/src/tags"
 )
 
 var (
@@ -18,14 +20,21 @@ var (
 )
 
 type photoRecord struct {
-	ID           string `dynamodbav:"id"`
-	Filename     string `dynamodbav:"filename"`
-	ContentType  string `dynamodbav:"contentType"`
-	Size         int64  `dynamodbav:"size"`
-	Status       string `dynamodbav:"status"`
-	OriginalKey  string `dynamodbav:"originalKey"`
-	ThumbnailKey string `dynamodbav:"thumbnailKey"`
-	Error        string `dynamodbav:"error,omitempty"`
+	Tags         []tags.Tag `dynamodbav:"tags,omitempty"`
+	ID           string     `dynamodbav:"id"`
+	Filename     string     `dynamodbav:"filename"`
+	ContentType  string     `dynamodbav:"contentType"`
+	Size         int64      `dynamodbav:"size"`
+	Status       string     `dynamodbav:"status"`
+	OriginalKey  string     `dynamodbav:"originalKey"`
+	ThumbnailKey string     `dynamodbav:"thumbnailKey"`
+	Error        string     `dynamodbav:"error,omitempty"`
+	UploadedAt   string     `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string     `dynamodbav:"capturedAt,omitempty"`
+	Width        int        `dynamodbav:"width,omitempty"`
+	Height       int        `dynamodbav:"height,omitempty"`
+	CameraMake   string     `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string     `dynamodbav:"cameraModel,omitempty"`
 }
 
 type photoConfig struct {
@@ -58,12 +67,19 @@ func newPhotoLibrary(repository photoRepository, objects photoObjects, config ph
 }
 
 type photoResponse struct {
-	ID           string `json:"id"`
-	Filename     string `json:"filename"`
-	Status       string `json:"status"`
-	Error        string `json:"error,omitempty"`
-	ThumbnailURL string `json:"thumbnailUrl,omitempty"`
-	OriginalURL  string `json:"originalUrl,omitempty"`
+	Tags         []tags.Tag `json:"tags,omitempty"`
+	ID           string     `json:"id"`
+	Filename     string     `json:"filename"`
+	Status       string     `json:"status"`
+	Error        string     `json:"error,omitempty"`
+	ThumbnailURL string     `json:"thumbnailUrl,omitempty"`
+	OriginalURL  string     `json:"originalUrl,omitempty"`
+	UploadedAt   string     `json:"uploadedAt,omitempty"`
+	CapturedAt   string     `json:"capturedAt,omitempty"`
+	Width        int        `json:"width,omitempty"`
+	Height       int        `json:"height,omitempty"`
+	CameraMake   string     `json:"cameraMake,omitempty"`
+	CameraModel  string     `json:"cameraModel,omitempty"`
 }
 
 func (app *server) photoRoute(next http.HandlerFunc) http.HandlerFunc {
@@ -123,8 +139,14 @@ func (app *server) createUpload(w http.ResponseWriter, r *http.Request) {
 
 	id := randomValue()
 	photo := photoRecord{
-		ID: id, Filename: request.Filename, ContentType: request.ContentType, Size: request.Size,
-		Status: "pending", OriginalKey: "originals/" + id, ThumbnailKey: "thumbnails/" + id + ".jpg",
+		ID:           id,
+		Filename:     request.Filename,
+		ContentType:  request.ContentType,
+		Size:         request.Size,
+		UploadedAt:   time.Now().UTC().Format(time.RFC3339),
+		Status:       "pending",
+		OriginalKey:  "originals/" + id,
+		ThumbnailKey: "thumbnails/" + id + ".jpg",
 	}
 	if err := app.photos.repository.Create(r.Context(), photo); err != nil {
 		app.photoError(w, err)
@@ -174,18 +196,47 @@ func (app *server) photoList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(photos, func(i, j int) bool {
-		if photos[i].Filename == photos[j].Filename {
+		left, right := photoSortDate(photos[i]), photoSortDate(photos[j])
+		if left.Equal(right) {
 			return photos[i].ID < photos[j].ID
 		}
-		return photos[i].Filename < photos[j].Filename
+
+		return left.After(right)
 	})
-	library := make([]photoResponse, 0, len(photos))
+	selected := r.URL.Query()["tag"]
+	matches := photos[:0]
 	for _, photo := range photos {
+		if photo.Status != "pending" && matchesTags(photo, selected) {
+			matches = append(matches, photo)
+		}
+	}
+
+	total := len(matches)
+	page, nextCursor, err := photoPage(matches, r.URL.Query())
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid photo page."})
+		return
+	}
+
+	library := make([]photoResponse, 0, len(page))
+	for _, photo := range page {
 		if photo.Status == "pending" {
 			continue
 		}
 
-		item := photoResponse{ID: photo.ID, Filename: photo.Filename, Status: photo.Status, Error: photo.Error}
+		item := photoResponse{
+			Tags:        photo.Tags,
+			ID:          photo.ID,
+			Filename:    photo.Filename,
+			Status:      photo.Status,
+			Error:       photo.Error,
+			UploadedAt:  validPhotoDate(photo.UploadedAt),
+			CapturedAt:  validPhotoDate(photo.CapturedAt),
+			Width:       photo.Width,
+			Height:      photo.Height,
+			CameraMake:  photo.CameraMake,
+			CameraModel: photo.CameraModel,
+		}
 		if photo.Status == "ready" {
 			item.OriginalURL = "/api/photos/" + photo.ID + "/original"
 			item.ThumbnailURL = "/api/photos/" + photo.ID + "/thumbnail"
@@ -194,7 +245,7 @@ func (app *server) photoList(w http.ResponseWriter, r *http.Request) {
 		library = append(library, item)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"photos": library, "total": len(library)})
+	writeJSON(w, http.StatusOK, map[string]any{"photos": library, "total": total, "nextCursor": nextCursor})
 }
 
 func (app *server) photoImage(variant string) http.HandlerFunc {
@@ -239,4 +290,27 @@ func (app *server) photoError(w http.ResponseWriter, err error) {
 	}
 
 	writeJSON(w, status, map[string]string{"error": http.StatusText(status)})
+}
+
+func validPhotoDate(value string) string {
+	for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05.999999999"} {
+		if _, err := time.Parse(layout, value); err == nil {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func photoSortDate(photo photoRecord) time.Time {
+	for _, value := range []string{photo.CapturedAt, photo.UploadedAt} {
+		for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05.999999999"} {
+			if parsed, err := time.Parse(layout, value); err == nil {
+				// Compare recorded clock times: a camera without an offset has no known UTC instant.
+				return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), parsed.Hour(), parsed.Minute(), parsed.Second(), parsed.Nanosecond(), time.UTC)
+			}
+		}
+	}
+
+	return time.Time{}
 }

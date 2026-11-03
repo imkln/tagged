@@ -132,6 +132,35 @@
   overflow-wrap: anywhere;
 }
 
+.photo-details-section + .photo-details-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.photo-details-section h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.photo-details-section dt:first-child {
+  margin-top: 0;
+}
+
+.photo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.photo-tag {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--background);
+  font-size: 12px;
+}
+
 @media (max-width: 600px) {
   .viewer-header {
     padding: 0 8px;
