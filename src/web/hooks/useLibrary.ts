@@ -23,6 +23,7 @@ export function useLibrary() {
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const mounted = useRef(false);
   const requests = useRef(new Set<XMLHttpRequest>());
   const latestUploads = useRef<Upload[]>([]);
@@ -51,11 +52,11 @@ export function useLibrary() {
         throw new Error('Unable to load photos.');
       if (mounted.current && !signal?.aborted) {
         setPhotos(body.photos);
-        setError('');
+        setLoadError('');
       }
     } catch (cause) {
       if (mounted.current && !signal?.aborted) {
-        setError(
+        setLoadError(
           cause instanceof Error ? cause.message : 'Unable to load photos.',
         );
       }
@@ -210,5 +211,13 @@ export function useLibrary() {
     }
   }
 
-  return { photos, uploads, loading, error, uploadFiles };
+  return {
+    photos,
+    uploads,
+    loading,
+    error,
+    loadError,
+    uploadFiles,
+    reload: loadPhotos,
+  };
 }

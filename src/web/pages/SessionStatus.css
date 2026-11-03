@@ -1,18 +1,22 @@
 .status-page {
-  padding: 40px;
+  padding: 24px;
   min-height: 100svh;
 }
 
 .status-page section,
 .status-page > p {
-  margin: 100px auto;
+  margin: clamp(80px, 18vh, 180px) auto 0;
+  max-width: 400px;
   text-align: center;
 }
 
 .status-page h1 {
-  font-size: 28px;
+  font-size: 22px;
+  font-weight: 600;
 }
 
 .status-page p {
-  color: #b4b2ac;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
 }

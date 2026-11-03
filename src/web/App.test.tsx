@@ -33,7 +33,11 @@ it('offers Google sign-in without exposing the library', async () => {
 
   expect(signIn).toHaveAttribute('href', '/auth/login');
   expect(
-    screen.queryByRole('heading', { name: 'Gallery' }),
+    screen.queryByRole('link', { name: 'Tagged home' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('main', { name: 'Photo library' }),
   ).not.toBeInTheDocument();
 });
 
@@ -43,11 +47,9 @@ it('shows the owner an empty gallery and a sign-out form', async () => {
   render(<App />);
 
   expect(
-    await screen.findByRole('heading', { name: 'Gallery' }),
+    await screen.findByRole('main', { name: 'Photo library' }),
   ).toBeInTheDocument();
-  expect(
-    await screen.findByText('Your library starts here'),
-  ).toBeInTheDocument();
+  expect(await screen.findByText('No photos yet')).toBeInTheDocument();
   expect(screen.getByText('0 photos')).toBeInTheDocument();
 
   const signOut = screen
@@ -73,7 +75,7 @@ it('denies other accounts without displaying the gallery', async () => {
 
   expect(signIn).toHaveAttribute('href', '/auth/login');
   expect(
-    screen.queryByRole('heading', { name: 'Gallery' }),
+    screen.queryByRole('main', { name: 'Photo library' }),
   ).not.toBeInTheDocument();
 });
 
@@ -101,6 +103,6 @@ it('lets the user retry after a connection failure', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
   expect(
-    await screen.findByRole('heading', { name: 'Gallery' }),
+    await screen.findByRole('main', { name: 'Photo library' }),
   ).toBeInTheDocument();
 });

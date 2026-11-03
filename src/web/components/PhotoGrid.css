@@ -1,0 +1,83 @@
+.photo-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.photo-row {
+  display: flex;
+  gap: 4px;
+}
+
+.photo-card {
+  flex: none;
+  min-width: 0;
+}
+
+.photo-open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 1px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.photo-open img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photo-caption {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 24px 8px 8px;
+  background: linear-gradient(transparent, #000b);
+  color: #fff;
+  font-size: 11px;
+  text-align: left;
+  opacity: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-open:hover .photo-caption,
+.photo-open:focus-visible .photo-caption {
+  opacity: 1;
+}
+
+.photo-open:focus-visible {
+  outline-offset: -3px;
+}
+
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+  overflow: auto;
+}
+
+.placeholder-filename {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.photo-error {
+  color: var(--error);
+  font-size: 12px;
+}
