@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/disintegration/imaging"
+	"github.com/imkln/tagged/src/tags"
 	"golang.org/x/image/draw"
 )
 
@@ -23,22 +24,23 @@ var (
 )
 
 type photoRecord struct {
-	ID           string   `dynamodbav:"id"`
-	Filename     string   `dynamodbav:"filename"`
-	ContentType  string   `dynamodbav:"contentType"`
-	Size         int64    `dynamodbav:"size"`
-	Status       string   `dynamodbav:"status"`
-	OriginalKey  string   `dynamodbav:"originalKey"`
-	ThumbnailKey string   `dynamodbav:"thumbnailKey"`
-	Error        string   `dynamodbav:"error,omitempty"`
-	UploadedAt   string   `dynamodbav:"uploadedAt,omitempty"`
-	CapturedAt   string   `dynamodbav:"capturedAt,omitempty"`
-	Width        int      `dynamodbav:"width,omitempty"`
-	Height       int      `dynamodbav:"height,omitempty"`
-	CameraMake   string   `dynamodbav:"cameraMake,omitempty"`
-	CameraModel  string   `dynamodbav:"cameraModel,omitempty"`
-	Latitude     *float64 `dynamodbav:"latitude,omitempty"`
-	Longitude    *float64 `dynamodbav:"longitude,omitempty"`
+	Tags         []tags.Tag `dynamodbav:"tags,omitempty"`
+	ID           string     `dynamodbav:"id"`
+	Filename     string     `dynamodbav:"filename"`
+	ContentType  string     `dynamodbav:"contentType"`
+	Size         int64      `dynamodbav:"size"`
+	Status       string     `dynamodbav:"status"`
+	OriginalKey  string     `dynamodbav:"originalKey"`
+	ThumbnailKey string     `dynamodbav:"thumbnailKey"`
+	Error        string     `dynamodbav:"error,omitempty"`
+	UploadedAt   string     `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string     `dynamodbav:"capturedAt,omitempty"`
+	Width        int        `dynamodbav:"width,omitempty"`
+	Height       int        `dynamodbav:"height,omitempty"`
+	CameraMake   string     `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string     `dynamodbav:"cameraModel,omitempty"`
+	Latitude     *float64   `dynamodbav:"latitude,omitempty"`
+	Longitude    *float64   `dynamodbav:"longitude,omitempty"`
 }
 
 type workerConfig struct {

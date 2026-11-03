@@ -104,6 +104,7 @@ func New(ctx context.Context, config Config, assets fs.FS, options ...Option) (h
 	mux.HandleFunc("POST /api/uploads", app.photoRoute(app.createUpload))
 	mux.HandleFunc("GET /api/uploads/{id}", app.photoRoute(app.uploadStatus))
 	mux.HandleFunc("GET /api/photos", app.photoRoute(app.photoList))
+	mux.HandleFunc("GET /api/tags", app.photoRoute(app.tagList))
 	mux.HandleFunc("GET /api/photos/{id}/original", app.photoRoute(app.photoImage("original")))
 	mux.HandleFunc("GET /api/photos/{id}/thumbnail", app.photoRoute(app.photoImage("thumbnail")))
 	mux.Handle("GET /assets/", app.assets)

@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/imkln/tagged/src/tags"
 )
 
 var (
@@ -18,22 +20,23 @@ var (
 )
 
 type photoRecord struct {
-	ID           string   `dynamodbav:"id"`
-	Filename     string   `dynamodbav:"filename"`
-	ContentType  string   `dynamodbav:"contentType"`
-	Size         int64    `dynamodbav:"size"`
-	Status       string   `dynamodbav:"status"`
-	OriginalKey  string   `dynamodbav:"originalKey"`
-	ThumbnailKey string   `dynamodbav:"thumbnailKey"`
-	Error        string   `dynamodbav:"error,omitempty"`
-	UploadedAt   string   `dynamodbav:"uploadedAt,omitempty"`
-	CapturedAt   string   `dynamodbav:"capturedAt,omitempty"`
-	Width        int      `dynamodbav:"width,omitempty"`
-	Height       int      `dynamodbav:"height,omitempty"`
-	CameraMake   string   `dynamodbav:"cameraMake,omitempty"`
-	CameraModel  string   `dynamodbav:"cameraModel,omitempty"`
-	Latitude     *float64 `dynamodbav:"latitude,omitempty"`
-	Longitude    *float64 `dynamodbav:"longitude,omitempty"`
+	Tags         []tags.Tag `dynamodbav:"tags,omitempty"`
+	ID           string     `dynamodbav:"id"`
+	Filename     string     `dynamodbav:"filename"`
+	ContentType  string     `dynamodbav:"contentType"`
+	Size         int64      `dynamodbav:"size"`
+	Status       string     `dynamodbav:"status"`
+	OriginalKey  string     `dynamodbav:"originalKey"`
+	ThumbnailKey string     `dynamodbav:"thumbnailKey"`
+	Error        string     `dynamodbav:"error,omitempty"`
+	UploadedAt   string     `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string     `dynamodbav:"capturedAt,omitempty"`
+	Width        int        `dynamodbav:"width,omitempty"`
+	Height       int        `dynamodbav:"height,omitempty"`
+	CameraMake   string     `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string     `dynamodbav:"cameraModel,omitempty"`
+	Latitude     *float64   `dynamodbav:"latitude,omitempty"`
+	Longitude    *float64   `dynamodbav:"longitude,omitempty"`
 }
 
 type photoConfig struct {
@@ -66,20 +69,21 @@ func newPhotoLibrary(repository photoRepository, objects photoObjects, config ph
 }
 
 type photoResponse struct {
-	ID           string   `json:"id"`
-	Filename     string   `json:"filename"`
-	Status       string   `json:"status"`
-	Error        string   `json:"error,omitempty"`
-	ThumbnailURL string   `json:"thumbnailUrl,omitempty"`
-	OriginalURL  string   `json:"originalUrl,omitempty"`
-	UploadedAt   string   `json:"uploadedAt,omitempty"`
-	CapturedAt   string   `json:"capturedAt,omitempty"`
-	Width        int      `json:"width,omitempty"`
-	Height       int      `json:"height,omitempty"`
-	CameraMake   string   `json:"cameraMake,omitempty"`
-	CameraModel  string   `json:"cameraModel,omitempty"`
-	Latitude     *float64 `json:"latitude,omitempty"`
-	Longitude    *float64 `json:"longitude,omitempty"`
+	Tags         []tags.Tag `json:"tags,omitempty"`
+	ID           string     `json:"id"`
+	Filename     string     `json:"filename"`
+	Status       string     `json:"status"`
+	Error        string     `json:"error,omitempty"`
+	ThumbnailURL string     `json:"thumbnailUrl,omitempty"`
+	OriginalURL  string     `json:"originalUrl,omitempty"`
+	UploadedAt   string     `json:"uploadedAt,omitempty"`
+	CapturedAt   string     `json:"capturedAt,omitempty"`
+	Width        int        `json:"width,omitempty"`
+	Height       int        `json:"height,omitempty"`
+	CameraMake   string     `json:"cameraMake,omitempty"`
+	CameraModel  string     `json:"cameraModel,omitempty"`
+	Latitude     *float64   `json:"latitude,omitempty"`
+	Longitude    *float64   `json:"longitude,omitempty"`
 }
 
 func (app *server) photoRoute(next http.HandlerFunc) http.HandlerFunc {
@@ -203,13 +207,29 @@ func (app *server) photoList(w http.ResponseWriter, r *http.Request) {
 
 		return left.After(right)
 	})
-	library := make([]photoResponse, 0, len(photos))
+	selected := r.URL.Query()["tag"]
+	matches := photos[:0]
 	for _, photo := range photos {
+		if photo.Status != "pending" && matchesTags(photo, selected) {
+			matches = append(matches, photo)
+		}
+	}
+
+	total := len(matches)
+	page, nextCursor, err := photoPage(matches, r.URL.Query())
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid photo page."})
+		return
+	}
+
+	library := make([]photoResponse, 0, len(page))
+	for _, photo := range page {
 		if photo.Status == "pending" {
 			continue
 		}
 
 		item := photoResponse{
+			Tags:        photo.Tags,
 			ID:          photo.ID,
 			Filename:    photo.Filename,
 			Status:      photo.Status,
@@ -231,7 +251,7 @@ func (app *server) photoList(w http.ResponseWriter, r *http.Request) {
 		library = append(library, item)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"photos": library, "total": len(library)})
+	writeJSON(w, http.StatusOK, map[string]any{"photos": library, "total": total, "nextCursor": nextCursor})
 }
 
 func (app *server) photoImage(variant string) http.HandlerFunc {

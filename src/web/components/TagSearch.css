@@ -1,0 +1,51 @@
+.tag-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-input {
+  position: relative;
+}
+
+.tag-input input {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.tag-input ul {
+  position: absolute;
+  z-index: 3;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  max-height: 240px;
+  overflow: auto;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.tag-input li {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.tag-input li:hover,
+.tag-input li[aria-selected='true'] {
+  background: var(--background);
+}

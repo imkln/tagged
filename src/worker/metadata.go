@@ -7,14 +7,19 @@ import (
 	"time"
 
 	"github.com/bep/imagemeta"
+	"github.com/imkln/tagged/src/tags"
 )
 
 func extractMetadata(data []byte, photo *photoRecord) {
-	var tags imagemeta.Tags
+	var fields imagemeta.Tags
 
 	_, _ = imagemeta.Decode(imagemeta.Options{
-		R: bytes.NewReader(data), ImageFormat: imagemeta.JPEG, Sources: imagemeta.EXIF,
+		R: bytes.NewReader(data), ImageFormat: imagemeta.JPEG, Sources: imagemeta.EXIF | imagemeta.XMP | imagemeta.IPTC,
 		ShouldHandleTag: func(tag imagemeta.TagInfo) bool {
+			if tag.Source != imagemeta.EXIF {
+				return tag.Tag == "Country" || tag.Tag == "City"
+			}
+
 			if !strings.HasPrefix(tag.Namespace, "IFD0") {
 				return false
 			}
@@ -27,14 +32,25 @@ func extractMetadata(data []byte, photo *photoRecord) {
 			return false
 		},
 		HandleTag: func(tag imagemeta.TagInfo) error {
-			tags.Add(tag)
+			fields.Add(tag)
 
 			return nil
 		},
 	})
 
 	// Metadata is optional: retain valid fields decoded before a malformed field.
-	exif := tags.EXIF()
+	names := make([]string, 0, 2)
+	for _, name := range []string{"Country", "City"} {
+		for _, source := range []map[string]imagemeta.TagInfo{fields.XMP(), fields.IPTC()} {
+			if value, ok := source[name].Value.(string); ok && strings.TrimSpace(value) != "" {
+				names = append(names, value)
+				break
+			}
+		}
+	}
+
+	photo.Tags = tags.ReplaceSource(photo.Tags, names, "metadata")
+	exif := fields.EXIF()
 	text := func(name string) string {
 		value, _ := exif[name].Value.(string)
 		return strings.TrimSpace(strings.Trim(value, "\x00"))

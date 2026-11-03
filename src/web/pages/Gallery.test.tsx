@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import Gallery from './Gallery';
 
@@ -651,3 +652,181 @@ it.each([
     ).not.toBeInTheDocument();
   },
 );
+
+it('searches with ordinary tags, removes selections, and resets the search', async () => {
+  const country = { id: 'tag-country', name: 'Exampleland' };
+  const city = { id: 'tag-city', name: 'Garden' };
+  const requests: URL[] = [];
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'https://tagged.example.test');
+      requests.push(url);
+
+      if (url.pathname === '/api/tags') {
+        const query = (url.searchParams.get('q') ?? '').toLowerCase();
+        return jsonResponse({
+          tags: [country, city].filter((tag) =>
+            tag.name.toLowerCase().includes(query),
+          ),
+        });
+      }
+
+      const selected = url.searchParams.getAll('tag');
+      return jsonResponse({
+        photos:
+          selected.length > 1 ? [] : [{ ...readyPhoto, tags: [country, city] }],
+        total: selected.length > 1 ? 0 : 1,
+      });
+    }),
+  );
+  showGallery();
+
+  const picker = await screen.findByRole('combobox', { name: 'Search tags' });
+  fireEvent.change(picker, { target: { value: 'Exam' } });
+  fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
+
+  await waitFor(() => {
+    const search = requests
+      .filter((url) => url.pathname === '/api/photos')
+      .at(-1)!;
+    expect(search.searchParams.getAll('tag')).toEqual(['tag-country']);
+  });
+
+  fireEvent.change(picker, { target: { value: 'Gard' } });
+  await screen.findByRole('option', { name: 'Garden' });
+  fireEvent.keyDown(picker, { key: 'ArrowDown' });
+  fireEvent.keyDown(picker, { key: 'Enter' });
+
+  expect(await screen.findByText('No matching photos')).toBeInTheDocument();
+  expect(screen.queryByText('No photos yet')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Remove Garden filter' }));
+
+  expect(
+    await screen.findByRole('img', { name: 'garden.jpg' }),
+  ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+  await waitFor(() => {
+    const search = requests
+      .filter((url) => url.pathname === '/api/photos')
+      .at(-1)!;
+    expect(search.searchParams.has('tag')).toBe(false);
+  });
+
+  expect(
+    screen.queryByRole('combobox', { name: /country|state|city|camera|date/i }),
+  ).not.toBeInTheDocument();
+});
+
+function mockScrollObserver() {
+  let reveal = () => {};
+
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+        reveal = () => callback([{ isIntersecting: true }]);
+      }
+
+      observe() {}
+      disconnect() {}
+    },
+  );
+
+  return () => act(() => reveal());
+}
+
+it('loads more photos on scroll while preserving selected tags', async () => {
+  const reveal = mockScrollObserver();
+  const requests: URL[] = [];
+  const tag = { id: 'tag-country', name: 'Exampleland' };
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'https://tagged.example.test');
+      requests.push(url);
+
+      if (url.pathname === '/api/tags') return jsonResponse({ tags: [tag] });
+
+      return jsonResponse({
+        photos: url.searchParams.has('cursor')
+          ? [readyPhoto, secondReadyPhoto]
+          : [readyPhoto],
+        total: 2,
+        nextCursor: url.searchParams.has('cursor') ? '' : 'next-page',
+      });
+    }),
+  );
+  render(
+    <StrictMode>
+      <Gallery email="owner@example.test" />
+    </StrictMode>,
+  );
+
+  const picker = await screen.findByRole('combobox', { name: 'Search tags' });
+  fireEvent.change(picker, { target: { value: 'Exam' } });
+  fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
+  await screen.findByRole('img', { name: 'garden.jpg' });
+
+  reveal();
+
+  expect(
+    await screen.findByRole('img', { name: 'lake.jpg' }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByRole('img', { name: 'garden.jpg' })).toHaveLength(1);
+  const page = requests.find((url) => url.searchParams.has('cursor'));
+  expect(page?.searchParams.get('cursor')).toBe('next-page');
+  expect(page?.searchParams.getAll('tag')).toEqual(['tag-country']);
+});
+
+it('keeps loaded photos after a failed scroll page and retries explicitly', async () => {
+  const reveal = mockScrollObserver();
+  let pageRequests = 0;
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'https://tagged.example.test');
+      if (url.searchParams.has('cursor')) {
+        pageRequests += 1;
+        return pageRequests === 1
+          ? jsonResponse({}, 503)
+          : jsonResponse({ photos: [secondReadyPhoto], total: 2 });
+      }
+
+      return jsonResponse({
+        photos: [readyPhoto],
+        total: 2,
+        nextCursor: 'next-page',
+      });
+    }),
+  );
+  render(
+    <StrictMode>
+      <Gallery email="owner@example.test" />
+    </StrictMode>,
+  );
+  await screen.findByRole('img', { name: 'garden.jpg' });
+
+  reveal();
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load more photos.',
+  );
+  expect(screen.getByRole('img', { name: 'garden.jpg' })).toBeInTheDocument();
+
+  reveal();
+
+  expect(pageRequests).toBe(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Retry loading more' }));
+
+  expect(
+    await screen.findByRole('img', { name: 'lake.jpg' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});

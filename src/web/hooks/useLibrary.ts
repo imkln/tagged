@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export type Tag = { id: string; name: string };
+
 export type Photo = {
+  tags?: Tag[];
   id: string;
   filename: string;
   status: string;
@@ -27,6 +30,18 @@ export type Upload = {
 };
 
 export function useLibrary() {
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const filters = useRef<Tag[]>([]);
+  const generation = useRef(0);
+  const activeRead = useRef<symbol | null>(null);
+  const loadedPages = useRef(1);
+  const cursor = useRef('');
+  const moreError = useRef('');
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pageError, setPageError] = useState('');
+  const [total, setTotal] = useState(0);
+
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,28 +63,91 @@ export function useLibrary() {
   }, []);
 
   const loadPhotos = useCallback(async () => {
+    if (activeRead.current) return;
+
+    const token = Symbol();
+    activeRead.current = token;
     const signal = controller.current?.signal;
+    const requestGeneration = generation.current;
+    const selected = [...filters.current];
+    const current = () =>
+      mounted.current &&
+      !signal?.aborted &&
+      requestGeneration === generation.current;
+
     try {
-      const response = await fetch('/api/photos', {
-        credentials: 'same-origin',
-        signal,
-      });
-      if (!response.ok) throw new Error('Unable to load photos.');
-      const body = await response.json();
-      if (!Array.isArray(body.photos))
-        throw new Error('Unable to load photos.');
-      if (mounted.current && !signal?.aborted) {
-        setPhotos(body.photos);
-        setLoadError('');
-      }
+      let next = '';
+      let count = 0;
+      let matchedTotal = 0;
+      const refreshed = new Map<string, Photo>();
+
+      // Refresh the loaded window so upload polling never collapses a scrolled gallery.
+      do {
+        const body = await fetchPhotoPage(selected, next, signal);
+        if (!current()) return;
+
+        for (const photo of body.photos) refreshed.set(photo.id, photo);
+        next = body.nextCursor ?? '';
+        matchedTotal = body.total ?? refreshed.size;
+        count += 1;
+      } while (next && count < loadedPages.current);
+
+      cursor.current = next;
+      setHasMore(Boolean(next));
+      setTotal(matchedTotal);
+      setPhotos([...refreshed.values()]);
+      setLoadError('');
     } catch (cause) {
-      if (mounted.current && !signal?.aborted) {
+      if (current()) {
         setLoadError(
           cause instanceof Error ? cause.message : 'Unable to load photos.',
         );
       }
     } finally {
-      if (mounted.current && !signal?.aborted) setLoading(false);
+      if (activeRead.current === token) activeRead.current = null;
+      if (current()) setLoading(false);
+    }
+  }, []);
+
+  const loadMore = useCallback(async (retry = false) => {
+    if (activeRead.current || !cursor.current || (moreError.current && !retry))
+      return;
+
+    const token = Symbol();
+    activeRead.current = token;
+    const requestGeneration = generation.current;
+    const signal = controller.current?.signal;
+    const next = cursor.current;
+    const current = () =>
+      mounted.current &&
+      !signal?.aborted &&
+      requestGeneration === generation.current;
+    setLoadingMore(true);
+    moreError.current = '';
+    setPageError('');
+
+    try {
+      const body = await fetchPhotoPage(filters.current, next, signal);
+      if (!current()) return;
+
+      setPhotos((previous) => {
+        const merged = new Map(previous.map((photo) => [photo.id, photo]));
+        for (const photo of body.photos) merged.set(photo.id, photo);
+
+        return [...merged.values()];
+      });
+      loadedPages.current += 1;
+      cursor.current = body.nextCursor ?? '';
+      setHasMore(Boolean(cursor.current));
+      if (body.total !== undefined) setTotal(body.total);
+    } catch {
+      if (current()) {
+        moreError.current = 'Unable to load more photos.';
+        setPageError(moreError.current);
+      }
+    } finally {
+      if (activeRead.current === token) activeRead.current = null;
+      if (current()) setLoadingMore(false);
     }
   }, []);
 
@@ -80,6 +158,7 @@ export function useLibrary() {
     return () => {
       mounted.current = false;
       controller.current?.abort();
+      activeRead.current = null;
       for (const request of requests.current) request.abort();
       requests.current.clear();
     };
@@ -90,12 +169,7 @@ export function useLibrary() {
   }, [uploads]);
 
   const needsPolling =
-    uploads.some(
-      (upload) =>
-        upload.status === 'processing' ||
-        (upload.status === 'ready' &&
-          !photos.some((photo) => photo.id === upload.photoId)),
-    ) ||
+    uploads.some((upload) => upload.status === 'processing') ||
     photos.some(
       (photo) => photo.status === 'processing' || photo.status === 'pending',
     );
@@ -219,7 +293,31 @@ export function useLibrary() {
     }
   }
 
+  function selectTags(tags: Tag[]) {
+    filters.current = tags;
+    generation.current += 1;
+    activeRead.current = null;
+    loadedPages.current = 1;
+    cursor.current = '';
+    moreError.current = '';
+    setHasMore(false);
+    setLoadingMore(false);
+    setPageError('');
+    setLoadError('');
+    setSelectedTags(tags);
+    setPhotos([]);
+    setLoading(true);
+    void loadPhotos();
+  }
+
   return {
+    total,
+    hasMore,
+    loadingMore,
+    pageError,
+    loadMore,
+    selectedTags,
+    selectTags,
     photos,
     uploads,
     loading,
@@ -228,4 +326,23 @@ export function useLibrary() {
     uploadFiles,
     reload: loadPhotos,
   };
+}
+
+async function fetchPhotoPage(
+  tags: Tag[],
+  cursor: string,
+  signal?: AbortSignal,
+) {
+  const params = new URLSearchParams();
+  for (const tag of tags) params.append('tag', tag.id);
+  if (cursor) params.set('cursor', cursor);
+
+  const path = params.size ? `/api/photos?${params}` : '/api/photos';
+  const response = await fetch(path, { credentials: 'same-origin', signal });
+  if (!response.ok) throw new Error('Unable to load photos.');
+
+  const body = await response.json();
+  if (!Array.isArray(body.photos)) throw new Error('Unable to load photos.');
+
+  return body as { photos: Photo[]; total?: number; nextCursor?: string };
 }

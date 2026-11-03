@@ -22,6 +22,7 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
   const fields = [
     { label: 'Filename', value: photo.filename },
     { label: 'Format', value: 'JPEG' },
+    { label: 'Tags', value: photo.tags?.map((tag) => tag.name).join(', ') },
     { label: 'Capture date', value: displayDate(photo.capturedAt) },
     { label: 'Upload date', value: displayDate(photo.uploadedAt) },
     {
