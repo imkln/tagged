@@ -583,3 +583,71 @@ it('does not offer library reload as a recovery action for an unsupported upload
   ).not.toBeInTheDocument();
   expect(screen.getByText('0 photos')).toBeInTheDocument();
 });
+
+it.each([
+  {
+    name: 'full metadata',
+    metadata: {
+      capturedAt: '2026-07-12T09:30:00',
+      uploadedAt: '2026-08-01T12:00:00Z',
+      width: 400,
+      height: 800,
+      cameraMake: 'Example Camera',
+      cameraModel: 'Model One',
+      latitude: -12.5,
+      longitude: -45.25,
+    },
+    present: ['Capture date', 'Upload date', 'Dimensions', 'Camera', 'GPS'],
+    absent: [],
+  },
+  {
+    name: 'upload date only',
+    metadata: { uploadedAt: '2026-08-01T12:00:00Z' },
+    present: ['Upload date'],
+    absent: ['Capture date', 'Dimensions', 'Camera', 'GPS'],
+  },
+  {
+    name: 'no metadata',
+    metadata: {},
+    present: [],
+    absent: ['Capture date', 'Upload date', 'Dimensions', 'Camera', 'GPS'],
+  },
+])(
+  'shows available metadata in details without inventing missing fields: $name',
+  async ({ metadata, present, absent }) => {
+    mockLibrary([{ ...readyPhoto, ...metadata }]);
+    showGallery();
+
+    fireEvent.click(await screen.findByRole('img', { name: 'garden.jpg' }));
+
+    const viewer = screen.getByRole('dialog');
+    const toggle = within(viewer).getByRole('button', {
+      name: /photo details/i,
+    });
+    if (toggle.getAttribute('aria-expanded') !== 'true')
+      fireEvent.click(toggle);
+
+    for (const label of present) {
+      expect(
+        within(viewer).getByText(label, { exact: true }),
+      ).toBeInTheDocument();
+    }
+
+    for (const label of absent) {
+      expect(
+        within(viewer).queryByText(label, { exact: true }),
+      ).not.toBeInTheDocument();
+    }
+
+    if (metadata.width) {
+      expect(within(viewer).getByText(/400\s*×\s*800/)).toBeInTheDocument();
+      expect(within(viewer).getByText(/Example Camera/)).toBeInTheDocument();
+      expect(within(viewer).getByText(/Model One/)).toBeInTheDocument();
+      expect(within(viewer).getByText(/-12\.5/)).toHaveTextContent('-45.25');
+    }
+
+    expect(
+      within(viewer).queryByText(/unknown|not available|invalid date/i),
+    ).not.toBeInTheDocument();
+  },
+);
