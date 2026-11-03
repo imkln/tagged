@@ -98,7 +98,7 @@ func newWorkerFixture() *workerFixture {
 			MaxImagePixels: DefaultMaxImagePixels,
 		},
 	}
-	fixture.worker = newThumbnailWorker(fixture.repository, fixture.objects, fixture.config)
+	fixture.worker = newThumbnailWorker(fixture.repository, fixture.objects, fixture.config, nil)
 	return fixture
 }
 

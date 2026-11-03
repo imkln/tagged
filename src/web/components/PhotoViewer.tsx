@@ -66,8 +66,8 @@ export default function PhotoViewer({
         }
         if (event.key === 'Tab') {
           const buttons = Array.from(
-            dialog.current?.querySelectorAll<HTMLButtonElement>(
-              'button:not(:disabled)',
+            dialog.current?.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), a[href]',
             ) ?? [],
           );
           const first = buttons[0];

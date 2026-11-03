@@ -63,3 +63,10 @@ variable "cognito_domain_prefix" {
     error_message = "Use 3–51 lowercase letters, digits, or hyphens, starting with a letter or digit."
   }
 }
+
+variable "geoapify_api_key" {
+  description = "Optional server-side Geoapify key for GPS-to-country/city tags. Empty disables lookup. Stored in encrypted Terraform state."
+  type        = string
+  sensitive   = true
+  default     = ""
+}

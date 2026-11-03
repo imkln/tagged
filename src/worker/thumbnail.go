@@ -24,23 +24,24 @@ var (
 )
 
 type photoRecord struct {
-	Tags         []tags.Tag `dynamodbav:"tags,omitempty"`
-	ID           string     `dynamodbav:"id"`
-	Filename     string     `dynamodbav:"filename"`
-	ContentType  string     `dynamodbav:"contentType"`
-	Size         int64      `dynamodbav:"size"`
-	Status       string     `dynamodbav:"status"`
-	OriginalKey  string     `dynamodbav:"originalKey"`
-	ThumbnailKey string     `dynamodbav:"thumbnailKey"`
-	Error        string     `dynamodbav:"error,omitempty"`
-	UploadedAt   string     `dynamodbav:"uploadedAt,omitempty"`
-	CapturedAt   string     `dynamodbav:"capturedAt,omitempty"`
-	Width        int        `dynamodbav:"width,omitempty"`
-	Height       int        `dynamodbav:"height,omitempty"`
-	CameraMake   string     `dynamodbav:"cameraMake,omitempty"`
-	CameraModel  string     `dynamodbav:"cameraModel,omitempty"`
-	Latitude     *float64   `dynamodbav:"latitude,omitempty"`
-	Longitude    *float64   `dynamodbav:"longitude,omitempty"`
+	Attributions []Attribution `dynamodbav:"attributions,omitempty"`
+	Tags         []tags.Tag    `dynamodbav:"tags,omitempty"`
+	ID           string        `dynamodbav:"id"`
+	Filename     string        `dynamodbav:"filename"`
+	ContentType  string        `dynamodbav:"contentType"`
+	Size         int64         `dynamodbav:"size"`
+	Status       string        `dynamodbav:"status"`
+	OriginalKey  string        `dynamodbav:"originalKey"`
+	ThumbnailKey string        `dynamodbav:"thumbnailKey"`
+	Error        string        `dynamodbav:"error,omitempty"`
+	UploadedAt   string        `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string        `dynamodbav:"capturedAt,omitempty"`
+	Width        int           `dynamodbav:"width,omitempty"`
+	Height       int           `dynamodbav:"height,omitempty"`
+	CameraMake   string        `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string        `dynamodbav:"cameraModel,omitempty"`
+	Latitude     *float64      `dynamodbav:"latitude,omitempty"`
+	Longitude    *float64      `dynamodbav:"longitude,omitempty"`
 }
 
 type workerConfig struct {
@@ -60,13 +61,14 @@ type photoObjects interface {
 }
 
 type thumbnailWorker struct {
+	places     PlaceResolver
 	repository photoRepository
 	objects    photoObjects
 	config     workerConfig
 }
 
-func newThumbnailWorker(repository photoRepository, objects photoObjects, config workerConfig) *thumbnailWorker {
-	return &thumbnailWorker{repository: repository, objects: objects, config: config}
+func newThumbnailWorker(repository photoRepository, objects photoObjects, config workerConfig, places PlaceResolver) *thumbnailWorker {
+	return &thumbnailWorker{repository: repository, objects: objects, config: config, places: places}
 }
 
 func (worker *thumbnailWorker) HandleS3Event(ctx context.Context, event events.S3Event) error {
@@ -138,7 +140,7 @@ func (worker *thumbnailWorker) process(ctx context.Context, photo photoRecord) e
 	}
 
 	photo.Width, photo.Height = original.Bounds().Dx(), original.Bounds().Dy()
-	extractMetadata(data, &photo)
+	embedded := extractMetadata(data, &photo)
 
 	width, height := photo.Width, photo.Height
 	if width > worker.config.ThumbnailEdge || height > worker.config.ThumbnailEdge {
@@ -160,6 +162,27 @@ func (worker *thumbnailWorker) process(ctx context.Context, photo photoRecord) e
 
 	if err := worker.objects.Put(ctx, photo.ThumbnailKey, "image/jpeg", encoded.Bytes()); err != nil {
 		return worker.fail(ctx, photo, "Unable to store the thumbnail.", err)
+	}
+
+	if worker.places != nil && photo.Latitude != nil && photo.Longitude != nil && (embedded.Country == "" || embedded.City == "") {
+		location, err := worker.places.Resolve(ctx, *photo.Latitude, *photo.Longitude)
+		if err == nil {
+			usedLookup := false
+			if embedded.Country == "" && location.Country != "" {
+				embedded.Country = location.Country
+				usedLookup = true
+			}
+
+			if embedded.City == "" && location.City != "" {
+				embedded.City = location.City
+				usedLookup = true
+			}
+
+			photo.Tags = tags.ReplaceSource(photo.Tags, []string{embedded.Country, embedded.City}, "metadata")
+			if usedLookup {
+				photo.Attributions = location.Attributions
+			}
+		}
 	}
 
 	photo.Status = "ready"

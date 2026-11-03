@@ -20,23 +20,24 @@ var (
 )
 
 type photoRecord struct {
-	Tags         []tags.Tag `dynamodbav:"tags,omitempty"`
-	ID           string     `dynamodbav:"id"`
-	Filename     string     `dynamodbav:"filename"`
-	ContentType  string     `dynamodbav:"contentType"`
-	Size         int64      `dynamodbav:"size"`
-	Status       string     `dynamodbav:"status"`
-	OriginalKey  string     `dynamodbav:"originalKey"`
-	ThumbnailKey string     `dynamodbav:"thumbnailKey"`
-	Error        string     `dynamodbav:"error,omitempty"`
-	UploadedAt   string     `dynamodbav:"uploadedAt,omitempty"`
-	CapturedAt   string     `dynamodbav:"capturedAt,omitempty"`
-	Width        int        `dynamodbav:"width,omitempty"`
-	Height       int        `dynamodbav:"height,omitempty"`
-	CameraMake   string     `dynamodbav:"cameraMake,omitempty"`
-	CameraModel  string     `dynamodbav:"cameraModel,omitempty"`
-	Latitude     *float64   `dynamodbav:"latitude,omitempty"`
-	Longitude    *float64   `dynamodbav:"longitude,omitempty"`
+	Attributions []attribution `dynamodbav:"attributions,omitempty"`
+	Tags         []tags.Tag    `dynamodbav:"tags,omitempty"`
+	ID           string        `dynamodbav:"id"`
+	Filename     string        `dynamodbav:"filename"`
+	ContentType  string        `dynamodbav:"contentType"`
+	Size         int64         `dynamodbav:"size"`
+	Status       string        `dynamodbav:"status"`
+	OriginalKey  string        `dynamodbav:"originalKey"`
+	ThumbnailKey string        `dynamodbav:"thumbnailKey"`
+	Error        string        `dynamodbav:"error,omitempty"`
+	UploadedAt   string        `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string        `dynamodbav:"capturedAt,omitempty"`
+	Width        int           `dynamodbav:"width,omitempty"`
+	Height       int           `dynamodbav:"height,omitempty"`
+	CameraMake   string        `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string        `dynamodbav:"cameraModel,omitempty"`
+	Latitude     *float64      `dynamodbav:"latitude,omitempty"`
+	Longitude    *float64      `dynamodbav:"longitude,omitempty"`
 }
 
 type photoConfig struct {
@@ -68,22 +69,28 @@ func newPhotoLibrary(repository photoRepository, objects photoObjects, config ph
 	return &photoLibrary{repository: repository, objects: objects, config: config}
 }
 
+type attribution struct {
+	Name string `json:"name" dynamodbav:"name"`
+	URL  string `json:"url" dynamodbav:"url"`
+}
+
 type photoResponse struct {
-	Tags         []tags.Tag `json:"tags,omitempty"`
-	ID           string     `json:"id"`
-	Filename     string     `json:"filename"`
-	Status       string     `json:"status"`
-	Error        string     `json:"error,omitempty"`
-	ThumbnailURL string     `json:"thumbnailUrl,omitempty"`
-	OriginalURL  string     `json:"originalUrl,omitempty"`
-	UploadedAt   string     `json:"uploadedAt,omitempty"`
-	CapturedAt   string     `json:"capturedAt,omitempty"`
-	Width        int        `json:"width,omitempty"`
-	Height       int        `json:"height,omitempty"`
-	CameraMake   string     `json:"cameraMake,omitempty"`
-	CameraModel  string     `json:"cameraModel,omitempty"`
-	Latitude     *float64   `json:"latitude,omitempty"`
-	Longitude    *float64   `json:"longitude,omitempty"`
+	Attributions []attribution `json:"attributions,omitempty"`
+	Tags         []tags.Tag    `json:"tags,omitempty"`
+	ID           string        `json:"id"`
+	Filename     string        `json:"filename"`
+	Status       string        `json:"status"`
+	Error        string        `json:"error,omitempty"`
+	ThumbnailURL string        `json:"thumbnailUrl,omitempty"`
+	OriginalURL  string        `json:"originalUrl,omitempty"`
+	UploadedAt   string        `json:"uploadedAt,omitempty"`
+	CapturedAt   string        `json:"capturedAt,omitempty"`
+	Width        int           `json:"width,omitempty"`
+	Height       int           `json:"height,omitempty"`
+	CameraMake   string        `json:"cameraMake,omitempty"`
+	CameraModel  string        `json:"cameraModel,omitempty"`
+	Latitude     *float64      `json:"latitude,omitempty"`
+	Longitude    *float64      `json:"longitude,omitempty"`
 }
 
 func (app *server) photoRoute(next http.HandlerFunc) http.HandlerFunc {
@@ -229,19 +236,20 @@ func (app *server) photoList(w http.ResponseWriter, r *http.Request) {
 		}
 
 		item := photoResponse{
-			Tags:        photo.Tags,
-			ID:          photo.ID,
-			Filename:    photo.Filename,
-			Status:      photo.Status,
-			Error:       photo.Error,
-			UploadedAt:  validPhotoDate(photo.UploadedAt),
-			CapturedAt:  validPhotoDate(photo.CapturedAt),
-			Width:       photo.Width,
-			Height:      photo.Height,
-			CameraMake:  photo.CameraMake,
-			CameraModel: photo.CameraModel,
-			Latitude:    photo.Latitude,
-			Longitude:   photo.Longitude,
+			Attributions: photo.Attributions,
+			Tags:         photo.Tags,
+			ID:           photo.ID,
+			Filename:     photo.Filename,
+			Status:       photo.Status,
+			Error:        photo.Error,
+			UploadedAt:   validPhotoDate(photo.UploadedAt),
+			CapturedAt:   validPhotoDate(photo.CapturedAt),
+			Width:        photo.Width,
+			Height:       photo.Height,
+			CameraMake:   photo.CameraMake,
+			CameraModel:  photo.CameraModel,
+			Latitude:     photo.Latitude,
+			Longitude:    photo.Longitude,
 		}
 		if photo.Status == "ready" {
 			item.OriginalURL = "/api/photos/" + photo.ID + "/original"

@@ -45,7 +45,27 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
         .map(({ label, value }) => (
           <Fragment key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {value}
+              {label === 'Tags' && photo.attributions?.length ? (
+                <div className="tag-attributions">
+                  {photo.attributions.map((credit) =>
+                    credit.url ? (
+                      <a
+                        key={`${credit.name}-${credit.url}`}
+                        href={credit.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {credit.name}
+                      </a>
+                    ) : (
+                      <span key={credit.name}>{credit.name}</span>
+                    ),
+                  )}
+                </div>
+              ) : null}
+            </dd>
           </Fragment>
         ))}
     </dl>

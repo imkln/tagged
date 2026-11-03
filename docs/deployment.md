@@ -61,3 +61,28 @@ The script creates the state bucket, OIDC provider, and deployment role, then cr
 
 1. Open the repository's **Actions → Deploy → Run workflow**. Select the branch to deploy, check **Apply the Terraform plan**, and click **Run workflow**.
 2. Open the successful run, expand **terraform output website_url**, and open the displayed URL.
+
+## Optional GPS place tags
+
+Create a Geoapify project and add its API key as the repository Actions secret
+`GEOAPIFY_API_KEY`. The deployment workflow supplies the key only to the worker;
+it is stored in encrypted Terraform state and the Lambda environment, never sent
+to the browser. An empty key disables GPS lookups. Apply these settings through
+the normal reviewed deployment process.
+
+On new JPEG uploads, the worker uses embedded country/city names when available.
+If a name is missing and GPS coordinates are present, it makes one Geoapify
+request and saves the resulting ordinary tags and attribution with the photo.
+Only coordinates are sent; originals are not sent. Browsing and tag search read
+saved records and do not call Geoapify. Attribution appears only beside tags in
+the photo details slideout.
+
+Lookup requests have a five-second timeout and no automatic retries. Photos
+remain viewable if the provider fails or rate-limits requests; missing place tags
+are not retried automatically. Existing photos are not backfilled.
+
+The Geoapify Free plan currently allows 3,000 credits per day and up to five
+requests per second. These are account-wide provider limits, not a budget enforced
+by Tagged; large upload batches may be rate-limited. Stay on the Free plan and
+within its quotas for zero provider charges. Lookup time also adds worker runtime.
+See [Geoapify pricing](https://www.geoapify.com/pricing/) for current limits.

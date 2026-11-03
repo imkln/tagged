@@ -10,7 +10,8 @@ import (
 	"github.com/imkln/tagged/src/tags"
 )
 
-func extractMetadata(data []byte, photo *photoRecord) {
+func extractMetadata(data []byte, photo *photoRecord) Place {
+	embedded := Place{}
 	var fields imagemeta.Tags
 
 	_, _ = imagemeta.Decode(imagemeta.Options{
@@ -44,6 +45,11 @@ func extractMetadata(data []byte, photo *photoRecord) {
 		for _, source := range []map[string]imagemeta.TagInfo{fields.XMP(), fields.IPTC()} {
 			if value, ok := source[name].Value.(string); ok && strings.TrimSpace(value) != "" {
 				names = append(names, value)
+				if name == "Country" {
+					embedded.Country = value
+				} else {
+					embedded.City = value
+				}
 				break
 			}
 		}
@@ -73,11 +79,11 @@ func extractMetadata(data []byte, photo *photoRecord) {
 	longitude, hasLongitude := exif["GPSLongitude"].Value.(float64)
 	northSouth, eastWest := text("GPSLatitudeRef"), text("GPSLongitudeRef")
 	if !hasLatitude || !hasLongitude || (northSouth != "N" && northSouth != "S") || (eastWest != "E" && eastWest != "W") {
-		return
+		return embedded
 	}
 
 	if math.IsNaN(latitude) || math.IsNaN(longitude) || latitude < 0 || latitude > 90 || longitude < 0 || longitude > 180 {
-		return
+		return embedded
 	}
 
 	if northSouth == "S" {
@@ -89,4 +95,6 @@ func extractMetadata(data []byte, photo *photoRecord) {
 	}
 
 	photo.Latitude, photo.Longitude = &latitude, &longitude
+
+	return embedded
 }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export type Tag = { id: string; name: string };
 
 export type Photo = {
+  attributions?: { name: string; url?: string }[];
   tags?: Tag[];
   id: string;
   filename: string;
