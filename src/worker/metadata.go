@@ -40,11 +40,9 @@ func extractMetadata(data []byte, photo *photoRecord) Place {
 	})
 
 	// Metadata is optional: retain valid fields decoded before a malformed field.
-	names := make([]string, 0, 2)
 	for _, name := range []string{"Country", "City"} {
 		for _, source := range []map[string]imagemeta.TagInfo{fields.XMP(), fields.IPTC()} {
 			if value, ok := source[name].Value.(string); ok && strings.TrimSpace(value) != "" {
-				names = append(names, value)
 				if name == "Country" {
 					embedded.Country = value
 				} else {
@@ -55,7 +53,7 @@ func extractMetadata(data []byte, photo *photoRecord) Place {
 		}
 	}
 
-	photo.Tags = tags.ReplaceSource(photo.Tags, names, "metadata")
+	applyPlaceTags(photo, embedded)
 	exif := fields.EXIF()
 	text := func(name string) string {
 		value, _ := exif[name].Value.(string)
@@ -97,4 +95,13 @@ func extractMetadata(data []byte, photo *photoRecord) Place {
 	photo.Latitude, photo.Longitude = &latitude, &longitude
 
 	return embedded
+}
+
+func applyPlaceTags(photo *photoRecord, place Place) {
+	paths := [][]string{{place.Country}}
+	if strings.TrimSpace(place.City) != "" && tags.Normalize(place.City) != tags.Normalize(place.Country) {
+		paths = append(paths, []string{place.Country, place.City})
+	}
+
+	photo.Tags = tags.ReplaceSourcePaths(photo.Tags, paths, "metadata")
 }

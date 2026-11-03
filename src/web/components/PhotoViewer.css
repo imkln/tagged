@@ -132,11 +132,37 @@
   overflow-wrap: anywhere;
 }
 
-.tag-attributions {
+.photo-details-section + .photo-details-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.photo-details-section h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.photo-details-section dt:first-child {
+  margin-top: 0;
+}
+
+.photo-tags {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.photo-tag {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--background);
+  font-size: 12px;
+}
+
+.tag-attributions {
+  margin-top: 20px;
   font-size: 11px;
   color: var(--muted);
 }

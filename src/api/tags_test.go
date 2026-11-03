@@ -20,6 +20,7 @@ func TestOwnerCanFindExistingTagsByName(t *testing.T) {
 		{query: "", want: []string{"Cat", "Exampleland", "Garden"}},
 		{query: "  gAR  ", want: []string{"Garden"}},
 		{query: "missing", want: []string{}},
+		{query: "Example", want: []string{"Exampleland", "Garden"}},
 	} {
 		t.Run(test.query, func(t *testing.T) {
 			response := serveRequest(fixture.handler, http.MethodGet, "/api/tags?q="+url.QueryEscape(test.query), cookie)
@@ -28,8 +29,9 @@ func TestOwnerCanFindExistingTagsByName(t *testing.T) {
 
 			var body struct {
 				Tags []struct {
-					ID   string `json:"id"`
-					Name string `json:"name"`
+					ID   string   `json:"id"`
+					Name string   `json:"name"`
+					Path []string `json:"path"`
 				} `json:"tags"`
 			}
 
@@ -38,6 +40,10 @@ func TestOwnerCanFindExistingTagsByName(t *testing.T) {
 			for _, tag := range body.Tags {
 				if tag.ID == "" {
 					t.Error("tag suggestion has no identity")
+				}
+
+				if tag.Name == "Garden" && !reflect.DeepEqual(tag.Path, []string{"Exampleland", "Garden"}) {
+					t.Errorf("city path = %v, want country and city", tag.Path)
 				}
 
 				got = append(got, tag.Name)
@@ -156,7 +162,7 @@ func seedTaggedPhotos(t *testing.T, photos *photoFixture) {
 	t.Helper()
 
 	country := map[string]any{"id": "tag-country", "name": "Exampleland", "sources": []string{"metadata"}}
-	city := map[string]any{"id": "tag-city", "name": "Garden", "sources": []string{"metadata"}}
+	city := map[string]any{"id": "tag-city", "name": "Garden", "path": []string{"Exampleland", "Garden"}, "sources": []string{"metadata"}}
 	cat := map[string]any{"id": "tag-cat", "name": "Cat", "sources": []string{"manual"}}
 
 	for _, photo := range []map[string]any{

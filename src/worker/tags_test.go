@@ -36,6 +36,12 @@ func TestMetadataCreatesOnlyCountryAndCityTags(t *testing.T) {
 					t.Errorf("sources = %v, want metadata", tag["sources"])
 				}
 
+				if tag["name"] == test.city && test.country != "" && test.city != "" {
+					if !reflect.DeepEqual(tag["path"], []any{test.country, test.city}) {
+						t.Errorf("city path = %v, want country and city", tag["path"])
+					}
+				}
+
 				got = append(got, tag["name"].(string))
 			}
 

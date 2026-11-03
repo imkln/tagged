@@ -653,7 +653,7 @@ it.each([
   },
 );
 
-it('searches with ordinary tags, removes selections, and resets the search', async () => {
+it('searches and selects tags as removable chips', async () => {
   const country = { id: 'tag-country', name: 'Exampleland' };
   const city = { id: 'tag-city', name: 'Garden' };
   const requests: URL[] = [];
@@ -683,7 +683,8 @@ it('searches with ordinary tags, removes selections, and resets the search', asy
   );
   showGallery();
 
-  const picker = await screen.findByRole('combobox', { name: 'Search tags' });
+  const picker = screen.getByRole('combobox', { name: 'Search tags' });
+  fireEvent.click(picker);
   fireEvent.change(picker, { target: { value: 'Exam' } });
   fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
 
@@ -695,9 +696,14 @@ it('searches with ordinary tags, removes selections, and resets the search', asy
   });
 
   fireEvent.change(picker, { target: { value: 'Gard' } });
-  await screen.findByRole('option', { name: 'Garden' });
-  fireEvent.keyDown(picker, { key: 'ArrowDown' });
-  fireEvent.keyDown(picker, { key: 'Enter' });
+  fireEvent.click(await screen.findByRole('option', { name: 'Garden' }));
+
+  expect(
+    screen.getByRole('button', { name: 'Remove Exampleland filter' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Remove Garden filter' }),
+  ).toBeInTheDocument();
 
   expect(await screen.findByText('No matching photos')).toBeInTheDocument();
   expect(screen.queryByText('No photos yet')).not.toBeInTheDocument();
@@ -708,7 +714,7 @@ it('searches with ordinary tags, removes selections, and resets the search', asy
     await screen.findByRole('img', { name: 'garden.jpg' }),
   ).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
 
   await waitFor(() => {
     const search = requests
@@ -768,7 +774,8 @@ it('loads more photos on scroll while preserving selected tags', async () => {
     </StrictMode>,
   );
 
-  const picker = await screen.findByRole('combobox', { name: 'Search tags' });
+  const picker = screen.getByRole('combobox', { name: 'Search tags' });
+  fireEvent.click(picker);
   fireEvent.change(picker, { target: { value: 'Exam' } });
   fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
   await screen.findByRole('img', { name: 'garden.jpg' });

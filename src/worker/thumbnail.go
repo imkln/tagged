@@ -178,7 +178,7 @@ func (worker *thumbnailWorker) process(ctx context.Context, photo photoRecord) e
 				usedLookup = true
 			}
 
-			photo.Tags = tags.ReplaceSource(photo.Tags, []string{embedded.Country, embedded.City}, "metadata")
+			applyPlaceTags(&photo, embedded)
 			if usedLookup {
 				photo.Attributions = location.Attributions
 			}

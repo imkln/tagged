@@ -45,6 +45,7 @@ export default function Gallery({ email }: { email: string }) {
           role="group"
           aria-label="Library actions"
         >
+          <TagSearch selected={selectedTags} onChange={selectTags} />
           <span className="photo-count" aria-live="polite">
             {loading
               ? 'Loading photos…'
@@ -68,7 +69,6 @@ export default function Gallery({ email }: { email: string }) {
             />
           </label>
         </div>
-        <TagSearch selected={selectedTags} onChange={selectTags} />
         {loadError && (
           <div role="alert" className="library-error">
             <span>{loadError}</span>

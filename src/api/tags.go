@@ -39,9 +39,21 @@ func (app *server) tagList(w http.ResponseWriter, r *http.Request) {
 
 	query := tags.Normalize(r.URL.Query().Get("q"))
 	unique := make(map[string]tags.Tag)
+	counts := make(map[string]int)
 	for _, photo := range photos {
+		seen := make(map[string]bool)
 		for _, tag := range photo.Tags {
-			if !strings.Contains(tags.Normalize(tag.Name), query) {
+			if !seen[tag.ID] {
+				counts[tag.ID]++
+				seen[tag.ID] = true
+			}
+
+			path := tag.Path
+			if len(path) == 0 {
+				path = []string{tag.Name}
+			}
+
+			if !strings.Contains(tags.Normalize(strings.Join(path, " ")), query) {
 				continue
 			}
 
@@ -52,12 +64,17 @@ func (app *server) tagList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result := make([]tags.Tag, 0, len(unique))
-	for _, tag := range unique {
-		result = append(result, tag)
+	type suggestion struct {
+		tags.Tag
+		Count int `json:"count"`
 	}
 
-	slices.SortFunc(result, func(a, b tags.Tag) int {
+	result := make([]suggestion, 0, len(unique))
+	for _, tag := range unique {
+		result = append(result, suggestion{Tag: tag, Count: counts[tag.ID]})
+	}
+
+	slices.SortFunc(result, func(a, b suggestion) int {
 		if comparison := strings.Compare(tags.Normalize(a.Name), tags.Normalize(b.Name)); comparison != 0 {
 			return comparison
 		}

@@ -22,7 +22,6 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
   const fields = [
     { label: 'Filename', value: photo.filename },
     { label: 'Format', value: 'JPEG' },
-    { label: 'Tags', value: photo.tags?.map((tag) => tag.name).join(', ') },
     { label: 'Capture date', value: displayDate(photo.capturedAt) },
     { label: 'Upload date', value: displayDate(photo.uploadedAt) },
     {
@@ -39,36 +38,56 @@ export default function PhotoDetails({ photo }: { photo: Photo }) {
   ];
 
   return (
-    <dl>
-      {fields
-        .filter(({ value }) => value)
-        .map(({ label, value }) => (
-          <Fragment key={label}>
-            <dt>{label}</dt>
-            <dd>
-              {value}
-              {label === 'Tags' && photo.attributions?.length ? (
-                <div className="tag-attributions">
-                  {photo.attributions.map((credit) =>
-                    credit.url ? (
-                      <a
-                        key={`${credit.name}-${credit.url}`}
-                        href={credit.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {credit.name}
-                      </a>
-                    ) : (
-                      <span key={credit.name}>{credit.name}</span>
-                    ),
+    <>
+      {photo.tags?.length ? (
+        <section className="photo-details-section">
+          <h3>Tags</h3>
+          <div className="photo-tags">
+            {photo.tags.map((tag) => (
+              <span className="photo-tag" key={tag.id}>
+                {tag.name}
+              </span>
+            ))}
+          </div>
+          {photo.attributions?.length ? (
+            <div className="tag-attributions">
+              Location data from
+              <br />
+              {photo.attributions.map((credit, index) => (
+                <Fragment key={`${credit.name}-${credit.url ?? ''}`}>
+                  {index > 0 ? ' ' : null}
+                  {credit.url ? (
+                    <a
+                      key={`${credit.name}-${credit.url}`}
+                      href={credit.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {credit.name}
+                    </a>
+                  ) : (
+                    <span>{credit.name}</span>
                   )}
-                </div>
-              ) : null}
-            </dd>
-          </Fragment>
-        ))}
-    </dl>
+                </Fragment>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      <section className="photo-details-section">
+        <h3>File</h3>
+        <dl>
+          {fields
+            .filter(({ value }) => value)
+            .map(({ label, value }) => (
+              <Fragment key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </Fragment>
+            ))}
+        </dl>
+      </section>
+    </>
   );
 }
 
