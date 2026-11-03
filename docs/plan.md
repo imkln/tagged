@@ -2,6 +2,12 @@
 
 Remaining work only. Remove implemented work rather than marking it complete. Each milestone delivers a visible result and is reviewed before the next begins.
 
+## Bugs
+
+- Photo viewer navigation stops at the last photo already loaded in the gallery, even when more matching photos exist. Load more photos while navigating in the viewer so browsing can continue without closing it and scrolling the gallery. Preserve active tag filters.
+
+## Milestones
+
 | Milestone | Deliverable | Visible result |
 | --- | --- | --- |
 | Backfill metadata for existing photos | Provide an explicit command to extract metadata from existing ready photos without re-uploading or changing originals. Preserve unrelated record fields and recover upload dates only from reliable existing records. Agree on scope and expected costs before running against AWS. | Existing photos gain available metadata and participate in date sorting without being re-uploaded. |
