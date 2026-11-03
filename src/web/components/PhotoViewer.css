@@ -7,6 +7,7 @@
   background: var(--background);
   outline: 0;
 }
+
 .viewer-header {
   height: 58px;
   flex: none;
@@ -17,6 +18,7 @@
   padding: 0 18px;
   border-bottom: 1px solid var(--line);
 }
+
 .viewer-header > span {
   color: var(--muted);
   font-size: 12px;
@@ -24,21 +26,25 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .viewer-header button {
   flex: none;
   background: transparent;
   border: 0;
   padding: 8px;
 }
+
 .viewer-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 48px;
   flex: 1;
   min-height: 0;
 }
+
 .viewer-content.details-open {
   grid-template-columns: minmax(0, 1fr) 48px 290px;
 }
+
 .viewer-stage {
   display: flex;
   flex-direction: column;
@@ -49,12 +55,14 @@
   padding: 24px 12px 12px 24px;
   background: #101010;
 }
+
 .viewer-stage > img {
   width: 100%;
   flex: 1;
   min-height: 0;
   object-fit: contain;
 }
+
 .viewer-stage > p {
   flex: 1;
   display: grid;
@@ -63,6 +71,7 @@
   text-align: center;
   font-size: 13px;
 }
+
 .viewer-navigation {
   display: flex;
   align-items: center;
@@ -72,14 +81,17 @@
   color: var(--muted);
   font-size: 12px;
 }
+
 .viewer-navigation button {
   min-width: 40px;
   background: #202020;
 }
+
 .details-rail {
   background: #101010;
   padding: 18px 4px 0 16px;
 }
+
 .details-handle {
   display: grid;
   place-items: center;
@@ -91,43 +103,52 @@
   color: var(--muted);
   background: var(--surface);
 }
+
 .photo-details {
   padding: 24px 20px;
   border-left: 1px solid var(--line);
   background: var(--surface);
   overflow: auto;
 }
+
 .photo-details h2 {
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 28px;
 }
+
 .photo-details dl {
   margin: 0;
   font-size: 12px;
 }
+
 .photo-details dt {
   color: var(--muted);
   margin-top: 18px;
 }
+
 .photo-details dd {
   margin: 6px 0 0;
   overflow-wrap: anywhere;
 }
+
 @media (max-width: 600px) {
   .viewer-header {
     padding: 0 8px;
   }
+
   .viewer-content,
   .viewer-content.details-open {
     position: relative;
     grid-template-columns: minmax(0, 1fr);
   }
+
   .viewer-stage {
     grid-column: 1;
     grid-row: 1;
     padding: 64px 12px 12px;
   }
+
   .details-rail {
     position: absolute;
     top: 0;
@@ -137,9 +158,11 @@
     background: transparent;
     z-index: 2;
   }
+
   .details-open .details-rail {
     right: min(290px, 82vw);
   }
+
   .photo-details {
     position: absolute;
     inset: 0 0 64px auto;

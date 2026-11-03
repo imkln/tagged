@@ -1,17 +1,20 @@
 .sign-in-page {
   min-height: 100svh;
 }
+
 .sign-in-content {
   width: min(100%, 400px);
   margin: clamp(80px, 18vh, 180px) auto 0;
   padding: 0 24px;
 }
+
 .sign-in-content h1 {
   font-size: 24px;
   font-weight: 600;
   margin: 0 0 16px;
   letter-spacing: -0.5px;
 }
+
 .sign-in-content p {
   color: var(--muted);
   font-size: 14px;

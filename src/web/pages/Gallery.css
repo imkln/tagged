@@ -1,9 +1,11 @@
 .app-layout {
   min-height: 100svh;
 }
+
 .gallery {
   padding: 0 24px 24px;
 }
+
 .gallery-toolbar {
   min-height: 68px;
   display: flex;
@@ -11,18 +13,22 @@
   justify-content: space-between;
   gap: 16px;
 }
+
 .photo-count {
   color: var(--muted);
   font-size: 12px;
 }
+
 .upload-button {
   position: relative;
   cursor: pointer;
 }
+
 .upload-button:focus-within {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+
 .file-input {
   position: absolute;
   width: 1px;
@@ -30,19 +36,23 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
+
 .empty-library {
   padding: 100px 16px;
   text-align: center;
 }
+
 .empty-library h1 {
   margin: 0 0 12px;
   font-size: 20px;
   font-weight: 600;
 }
+
 .empty-library p {
   color: var(--muted);
   font-size: 13px;
 }
+
 .library-error {
   border: 1px solid var(--line);
   border-radius: 5px;
@@ -51,10 +61,12 @@
   font-size: 13px;
   margin: 0 0 16px;
 }
+
 @media (max-width: 600px) {
   .gallery {
     padding: 0 10px 16px;
   }
+
   .gallery-toolbar {
     min-height: 64px;
   }

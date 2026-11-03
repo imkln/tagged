@@ -7,6 +7,7 @@
   padding: 0 24px;
   border-bottom: 1px solid var(--line);
 }
+
 .sign-out {
   border: 0;
   background: transparent;
@@ -14,6 +15,7 @@
   padding: 10px 12px;
   font-size: 12px;
 }
+
 .sign-out:hover {
   color: var(--text);
 }

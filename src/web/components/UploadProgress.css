@@ -3,6 +3,7 @@
   border-radius: 5px;
   margin-bottom: 16px;
 }
+
 .upload-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -11,15 +12,19 @@
   padding: 12px;
   font-size: 12px;
 }
+
 .upload-item + .upload-item {
   border-top: 1px solid var(--line);
 }
+
 .upload-filename {
   overflow-wrap: anywhere;
 }
+
 .upload-status {
   color: var(--muted);
 }
+
 .upload-item progress {
   grid-column: 1 / -1;
   width: 100%;
