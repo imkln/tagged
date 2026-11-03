@@ -7,6 +7,14 @@ export type Photo = {
   error?: string;
   thumbnailUrl?: string;
   originalUrl?: string;
+  capturedAt?: string;
+  uploadedAt?: string;
+  width?: number;
+  height?: number;
+  cameraMake?: string;
+  cameraModel?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Upload = {
