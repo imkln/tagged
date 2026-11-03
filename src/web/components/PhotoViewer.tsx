@@ -90,9 +90,6 @@ export default function PhotoViewer({
       }}
     >
       <header className="viewer-header">
-        <button type="button" onClick={onClose}>
-          ← Back
-        </button>
         <span>{current.filename}</span>
         <button type="button" onClick={onClose} aria-label="Close photo">
           ×

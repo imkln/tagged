@@ -32,6 +32,9 @@ it('offers Google sign-in without exposing the library', async () => {
   });
 
   expect(signIn).toHaveAttribute('href', '/auth/login');
+  expect(
+    screen.queryByRole('link', { name: 'Tagged home' }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   expect(
     screen.queryByRole('main', { name: 'Photo library' }),

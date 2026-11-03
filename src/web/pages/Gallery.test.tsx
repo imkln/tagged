@@ -132,6 +132,9 @@ it('provides an explicit close button in the photo viewer', async () => {
   );
 
   const viewer = await screen.findByRole('dialog', { name: 'garden.jpg' });
+  expect(
+    within(viewer).queryByRole('button', { name: /back/i }),
+  ).not.toBeInTheDocument();
   fireEvent.click(within(viewer).getByRole('button', { name: /close/i }));
   await waitFor(() =>
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
