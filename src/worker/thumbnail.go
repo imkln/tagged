@@ -23,14 +23,22 @@ var (
 )
 
 type photoRecord struct {
-	ID           string `dynamodbav:"id"`
-	Filename     string `dynamodbav:"filename"`
-	ContentType  string `dynamodbav:"contentType"`
-	Size         int64  `dynamodbav:"size"`
-	Status       string `dynamodbav:"status"`
-	OriginalKey  string `dynamodbav:"originalKey"`
-	ThumbnailKey string `dynamodbav:"thumbnailKey"`
-	Error        string `dynamodbav:"error,omitempty"`
+	ID           string   `dynamodbav:"id"`
+	Filename     string   `dynamodbav:"filename"`
+	ContentType  string   `dynamodbav:"contentType"`
+	Size         int64    `dynamodbav:"size"`
+	Status       string   `dynamodbav:"status"`
+	OriginalKey  string   `dynamodbav:"originalKey"`
+	ThumbnailKey string   `dynamodbav:"thumbnailKey"`
+	Error        string   `dynamodbav:"error,omitempty"`
+	UploadedAt   string   `dynamodbav:"uploadedAt,omitempty"`
+	CapturedAt   string   `dynamodbav:"capturedAt,omitempty"`
+	Width        int      `dynamodbav:"width,omitempty"`
+	Height       int      `dynamodbav:"height,omitempty"`
+	CameraMake   string   `dynamodbav:"cameraMake,omitempty"`
+	CameraModel  string   `dynamodbav:"cameraModel,omitempty"`
+	Latitude     *float64 `dynamodbav:"latitude,omitempty"`
+	Longitude    *float64 `dynamodbav:"longitude,omitempty"`
 }
 
 type workerConfig struct {
@@ -127,7 +135,10 @@ func (worker *thumbnailWorker) process(ctx context.Context, photo photoRecord) e
 		return worker.fail(ctx, photo, "The uploaded file is not a valid JPEG.", nil)
 	}
 
-	width, height := original.Bounds().Dx(), original.Bounds().Dy()
+	photo.Width, photo.Height = original.Bounds().Dx(), original.Bounds().Dy()
+	extractMetadata(data, &photo)
+
+	width, height := photo.Width, photo.Height
 	if width > worker.config.ThumbnailEdge || height > worker.config.ThumbnailEdge {
 		if width >= height {
 			height = max(1, height*worker.config.ThumbnailEdge/width)
