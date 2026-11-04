@@ -844,7 +844,7 @@ it('next should retry loading after a failure without changing the current photo
 });
 
 function mockScrollObserver() {
-  let reveal = () => {};
+  let reveal: (() => void) | undefined;
 
   vi.stubGlobal(
     'IntersectionObserver',
@@ -858,7 +858,11 @@ function mockScrollObserver() {
     },
   );
 
-  return () => act(() => reveal());
+  return async () => {
+    await waitFor(() => expect(reveal).toBeDefined());
+
+    await act(async () => reveal!());
+  };
 }
 
 it('loads more photos on scroll while preserving selected tags', async () => {
@@ -895,7 +899,7 @@ it('loads more photos on scroll while preserving selected tags', async () => {
   fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
   await screen.findByRole('img', { name: 'garden.jpg' });
 
-  reveal();
+  await reveal();
 
   expect(
     await screen.findByRole('img', { name: 'lake.jpg' }),
@@ -935,7 +939,7 @@ it('scrolling down again after a loading failure should retry without a button',
   );
   await screen.findByRole('img', { name: 'garden.jpg' });
 
-  reveal();
+  await reveal();
 
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Unable to load more photos.',
@@ -945,7 +949,7 @@ it('scrolling down again after a loading failure should retry without a button',
     screen.queryByRole('button', { name: 'Retry loading more' }),
   ).not.toBeInTheDocument();
 
-  reveal();
+  await reveal();
 
   expect(pageRequests).toBe(1);
   vi.stubGlobal('scrollY', window.scrollY + 100);
