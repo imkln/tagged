@@ -15,6 +15,26 @@ export default function ScrollLoader({
   const sentinel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!hasMore || loading || !error) return;
+
+    let previousY = window.scrollY;
+    function retryOnScroll() {
+      const movingDown = window.scrollY > previousY;
+      previousY = window.scrollY;
+      if (
+        movingDown &&
+        sentinel.current &&
+        sentinel.current.getBoundingClientRect().top <= window.innerHeight + 400
+      ) {
+        void onLoadMore(true);
+      }
+    }
+
+    window.addEventListener('scroll', retryOnScroll, { passive: true });
+    return () => window.removeEventListener('scroll', retryOnScroll);
+  }, [hasMore, loading, error, onLoadMore]);
+
+  useEffect(() => {
     if (
       !hasMore ||
       loading ||
@@ -39,14 +59,7 @@ export default function ScrollLoader({
 
   return (
     <div className="scroll-loader" ref={sentinel}>
-      {error ? (
-        <div role="alert">
-          <span>{error}</span>
-          <button type="button" onClick={() => void onLoadMore(true)}>
-            Retry loading more
-          </button>
-        </div>
-      ) : loading ? (
+      {error ? null : loading ? (
         <p role="status">Loading more photos…</p>
       ) : (
         <button type="button" onClick={() => void onLoadMore()}>

@@ -46,6 +46,7 @@
 }
 
 .viewer-stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -73,10 +74,11 @@
 }
 
 .viewer-navigation {
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px 40px;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 12px;
   margin-top: 12px;
   color: var(--muted);
   font-size: 12px;

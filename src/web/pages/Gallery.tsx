@@ -4,6 +4,7 @@ import ScrollLoader from '../components/ScrollLoader';
 import TagSearch from '../components/TagSearch';
 import PhotoGrid from '../components/PhotoGrid';
 import PhotoViewer from '../components/PhotoViewer';
+import Notification from '../components/Notification';
 import UploadProgress from '../components/UploadProgress';
 import { useLibrary } from '../hooks/useLibrary';
 import type { Photo } from '../hooks/useLibrary';
@@ -39,6 +40,7 @@ export default function Gallery({ email }: { email: string }) {
   return (
     <div className="app-layout">
       <AppHeader email={email} />
+      <Notification message={selected ? '' : pageError} />
       <main className="gallery" aria-label="Photo library">
         <div
           className="gallery-toolbar"
@@ -108,6 +110,11 @@ export default function Gallery({ email }: { email: string }) {
         <PhotoViewer
           photos={viewablePhotos}
           photo={selected}
+          total={total}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          pageError={pageError}
+          onLoadMore={loadMore}
           onClose={() => setSelected(null)}
         />
       )}
