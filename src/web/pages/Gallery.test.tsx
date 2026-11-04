@@ -401,7 +401,7 @@ const secondReadyPhoto = {
   originalUrl: '/api/photos/photo-lake/original',
 };
 
-it('browses ready photos in gallery order while skipping processing photos', async () => {
+it('browsing photos in gallery order should skip processing photos', async () => {
   mockLibrary([
     readyPhoto,
     { id: 'photo-processing', filename: 'waiting.jpg', status: 'processing' },
@@ -412,24 +412,57 @@ it('browses ready photos in gallery order while skipping processing photos', asy
     await screen.findByRole('button', { name: 'Open garden.jpg' }),
   );
 
-  let viewer = screen.getByRole('dialog', { name: 'garden.jpg' });
-  expect(
-    within(viewer).getByRole('button', { name: 'Previous photo' }),
-  ).toBeDisabled();
+  const viewer = screen.getByRole('dialog', { name: 'garden.jpg' });
   fireEvent.click(within(viewer).getByRole('button', { name: 'Next photo' }));
 
-  viewer = screen.getByRole('dialog', { name: 'lake.jpg' });
-  expect(within(viewer).getByRole('img', { name: 'lake.jpg' })).toHaveAttribute(
-    'src',
-    secondReadyPhoto.originalUrl,
-  );
+  const nextViewer = screen.getByRole('dialog', { name: 'lake.jpg' });
   expect(
-    within(viewer).getByRole('button', { name: 'Next photo' }),
-  ).toBeDisabled();
-  fireEvent.keyDown(viewer, { key: 'ArrowLeft' });
+    within(nextViewer).getByRole('img', { name: 'lake.jpg' }),
+  ).toHaveAttribute('src', secondReadyPhoto.originalUrl);
+});
+
+it('left and right arrow keys should show the previous and next photo', async () => {
+  mockLibrary([readyPhoto, secondReadyPhoto]);
+  showGallery();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Open garden.jpg' }),
+  );
+
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowRight' });
+
+  expect(screen.getByRole('dialog', { name: 'lake.jpg' })).toBeInTheDocument();
+
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowLeft' });
+
   expect(
     screen.getByRole('dialog', { name: 'garden.jpg' }),
   ).toBeInTheDocument();
+});
+
+it('previous should be hidden at the first photo and next at the last photo', async () => {
+  mockLibrary([readyPhoto, secondReadyPhoto]);
+  showGallery();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Open garden.jpg' }),
+  );
+
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('button', {
+      name: 'Previous photo',
+    }),
+  ).not.toBeInTheDocument();
+
+  fireEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', {
+      name: 'Next photo',
+    }),
+  );
+
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('button', {
+      name: 'Next photo',
+    }),
+  ).not.toBeInTheDocument();
 });
 
 it('restores focus to the opening thumbnail after navigating and closing', async () => {
@@ -725,8 +758,93 @@ it('searches and selects tags as removable chips', async () => {
   ).not.toBeInTheDocument();
 });
 
+it('going to the next photo in the viewer should load the next batch when needed', async () => {
+  const tag = { id: 'tag-country', name: 'Exampleland' };
+  const pages: URL[] = [];
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'https://tagged.example.test');
+      if (url.pathname === '/api/tags') return jsonResponse({ tags: [tag] });
+
+      const nextPage = url.searchParams.has('cursor');
+      if (nextPage) pages.push(url);
+
+      return jsonResponse({
+        photos: nextPage ? [secondReadyPhoto] : [readyPhoto],
+        total: 2,
+        nextCursor: nextPage ? '' : 'next-page',
+      });
+    }),
+  );
+  showGallery();
+
+  const picker = screen.getByRole('combobox', { name: 'Search tags' });
+  fireEvent.click(picker);
+  fireEvent.change(picker, { target: { value: 'Exam' } });
+  fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Open garden.jpg' }),
+  );
+
+  const viewer = screen.getByRole('dialog', { name: 'garden.jpg' });
+  fireEvent.click(within(viewer).getByRole('button', { name: 'Next photo' }));
+
+  expect(
+    await screen.findByRole('dialog', { name: 'lake.jpg' }),
+  ).toBeInTheDocument();
+  expect(pages).toHaveLength(1);
+  expect(pages[0].searchParams.get('cursor')).toBe('next-page');
+  expect(pages[0].searchParams.getAll('tag')).toEqual(['tag-country']);
+});
+
+it('next should retry loading after a failure without changing the current photo first', async () => {
+  let pageRequests = 0;
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'https://tagged.example.test');
+      if (url.searchParams.has('cursor')) {
+        pageRequests += 1;
+        return pageRequests === 1
+          ? jsonResponse({}, 503)
+          : jsonResponse({ photos: [secondReadyPhoto], total: 2 });
+      }
+
+      return jsonResponse({
+        photos: [readyPhoto],
+        total: 2,
+        nextCursor: 'next-page',
+      });
+    }),
+  );
+  showGallery();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Open garden.jpg' }),
+  );
+  const viewer = screen.getByRole('dialog', { name: 'garden.jpg' });
+
+  fireEvent.click(within(viewer).getByRole('button', { name: 'Next photo' }));
+
+  expect(await within(viewer).findByRole('alert')).toHaveTextContent(
+    'Unable to load more photos.',
+  );
+  expect(
+    within(viewer).getByRole('img', { name: 'garden.jpg' }),
+  ).toBeInTheDocument();
+
+  fireEvent.click(within(viewer).getByRole('button', { name: 'Next photo' }));
+
+  expect(
+    await screen.findByRole('dialog', { name: 'lake.jpg' }),
+  ).toBeInTheDocument();
+  expect(pageRequests).toBe(2);
+});
+
 function mockScrollObserver() {
-  let reveal = () => {};
+  let reveal: (() => void) | undefined;
 
   vi.stubGlobal(
     'IntersectionObserver',
@@ -740,7 +858,11 @@ function mockScrollObserver() {
     },
   );
 
-  return () => act(() => reveal());
+  return async () => {
+    await waitFor(() => expect(reveal).toBeDefined());
+
+    await act(async () => reveal!());
+  };
 }
 
 it('loads more photos on scroll while preserving selected tags', async () => {
@@ -777,7 +899,7 @@ it('loads more photos on scroll while preserving selected tags', async () => {
   fireEvent.click(await screen.findByRole('option', { name: 'Exampleland' }));
   await screen.findByRole('img', { name: 'garden.jpg' });
 
-  reveal();
+  await reveal();
 
   expect(
     await screen.findByRole('img', { name: 'lake.jpg' }),
@@ -788,7 +910,7 @@ it('loads more photos on scroll while preserving selected tags', async () => {
   expect(page?.searchParams.getAll('tag')).toEqual(['tag-country']);
 });
 
-it('keeps loaded photos after a failed scroll page and retries explicitly', async () => {
+it('scrolling down again after a loading failure should retry without a button', async () => {
   const reveal = mockScrollObserver();
   let pageRequests = 0;
 
@@ -817,17 +939,21 @@ it('keeps loaded photos after a failed scroll page and retries explicitly', asyn
   );
   await screen.findByRole('img', { name: 'garden.jpg' });
 
-  reveal();
+  await reveal();
 
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Unable to load more photos.',
   );
   expect(screen.getByRole('img', { name: 'garden.jpg' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Retry loading more' }),
+  ).not.toBeInTheDocument();
 
-  reveal();
+  await reveal();
 
   expect(pageRequests).toBe(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Retry loading more' }));
+  vi.stubGlobal('scrollY', window.scrollY + 100);
+  fireEvent.scroll(window);
 
   expect(
     await screen.findByRole('img', { name: 'lake.jpg' }),

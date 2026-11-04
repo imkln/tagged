@@ -1,15 +1,26 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Photo } from '../hooks/useLibrary';
 import PhotoDetails from './PhotoDetails';
+import Notification from './Notification';
 import './PhotoViewer.css';
 
 export default function PhotoViewer({
   photo,
   photos,
+  total,
+  hasMore,
+  loadingMore,
+  pageError,
+  onLoadMore,
   onClose,
 }: {
   photo: Photo;
   photos: Photo[];
+  total: number;
+  hasMore: boolean;
+  loadingMore: boolean;
+  pageError: string;
+  onLoadMore: (retry?: boolean) => Promise<void>;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -17,8 +28,38 @@ export default function PhotoViewer({
   const [currentId, setCurrentId] = useState(photo.id);
   const [detailsOpen, setDetailsOpen] = useState(() => window.innerWidth > 600);
   const [failedId, setFailedId] = useState<string | null>(null);
+  const [waitingForNext, setWaitingForNext] = useState(false);
+  const [notification, setNotification] = useState('');
   const index = photos.findIndex((item) => item.id === currentId);
   const current = photos[index] ?? photo;
+
+  useEffect(() => {
+    if (!waitingForNext) return;
+
+    if (pageError && !loadingMore) {
+      setNotification(pageError);
+      setWaitingForNext(false);
+      return;
+    }
+
+    const next = photos[index + 1];
+    if (next) {
+      setCurrentId(next.id);
+      setFailedId(null);
+      setWaitingForNext(false);
+    } else if (!loadingMore && !pageError) {
+      if (hasMore) void onLoadMore();
+      else setWaitingForNext(false);
+    }
+  }, [
+    waitingForNext,
+    photos,
+    index,
+    hasMore,
+    loadingMore,
+    pageError,
+    onLoadMore,
+  ]);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -38,11 +79,23 @@ export default function PhotoViewer({
     };
   }, []);
 
+  useEffect(() => {
+    if (!dialog.current?.contains(document.activeElement))
+      dialog.current?.focus();
+  }, [currentId]);
+
   function navigate(offset: number) {
+    if (offset < 0) setWaitingForNext(false);
+
     const next = photos[index + offset];
     if (next) {
       setCurrentId(next.id);
       setFailedId(null);
+      setWaitingForNext(false);
+    } else if (offset > 0 && hasMore && !waitingForNext) {
+      setNotification('');
+      setWaitingForNext(true);
+      if (pageError) void onLoadMore(true);
     }
   }
 
@@ -96,6 +149,13 @@ export default function PhotoViewer({
           ×
         </button>
       </header>
+      <Notification
+        message={
+          notification ||
+          (waitingForNext && loadingMore ? 'Loading more photos…' : '')
+        }
+        role={notification ? 'alert' : 'status'}
+      />
       <div className={`viewer-content${detailsOpen ? ' details-open' : ''}`}>
         <section className="viewer-stage" aria-label="Photo">
           {failedId === current.id ? (
@@ -109,25 +169,32 @@ export default function PhotoViewer({
             />
           )}
           <nav className="viewer-navigation" aria-label="Photo navigation">
-            <button
-              type="button"
-              aria-label="Previous photo"
-              disabled={index <= 0}
-              onClick={() => navigate(-1)}
-            >
-              ←
-            </button>
+            {index > 0 ? (
+              <button
+                type="button"
+                aria-label="Previous photo"
+                onClick={() => navigate(-1)}
+              >
+                ←
+              </button>
+            ) : (
+              <span />
+            )}
             <span aria-live="polite">
-              {index + 1} / {photos.length}
+              {index + 1} / {total}
             </span>
-            <button
-              type="button"
-              aria-label="Next photo"
-              disabled={index < 0 || index >= photos.length - 1}
-              onClick={() => navigate(1)}
-            >
-              →
-            </button>
+            {index >= 0 && (index < photos.length - 1 || hasMore) ? (
+              <button
+                type="button"
+                aria-label="Next photo"
+                disabled={waitingForNext && loadingMore}
+                onClick={() => navigate(1)}
+              >
+                →
+              </button>
+            ) : (
+              <span />
+            )}
           </nav>
         </section>
         <div className="details-rail">
