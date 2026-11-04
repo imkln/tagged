@@ -63,6 +63,6 @@ it('the viewer should show the library total rather than the number of loaded ph
   );
 
   expect(
-    within(screen.getByRole('dialog')).getByText('15 photos'),
+    within(screen.getByRole('dialog')).getByText('1 / 15'),
   ).toBeInTheDocument();
 });

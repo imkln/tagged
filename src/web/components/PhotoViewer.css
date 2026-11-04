@@ -75,7 +75,7 @@
 
 .viewer-navigation {
   display: grid;
-  grid-template-columns: 40px 40px;
+  grid-template-columns: 40px auto 40px;
   align-items: center;
   justify-content: center;
   gap: 12px;

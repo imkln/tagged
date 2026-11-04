@@ -145,9 +145,6 @@ export default function PhotoViewer({
     >
       <header className="viewer-header">
         <span>{current.filename}</span>
-        <span>
-          {total} {total === 1 ? 'photo' : 'photos'}
-        </span>
         <button type="button" onClick={onClose} aria-label="Close photo">
           ×
         </button>
@@ -183,6 +180,9 @@ export default function PhotoViewer({
             ) : (
               <span />
             )}
+            <span aria-live="polite">
+              {index + 1} / {total}
+            </span>
             {index >= 0 && (index < photos.length - 1 || hasMore) ? (
               <button
                 type="button"
